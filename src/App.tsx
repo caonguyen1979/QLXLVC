@@ -49,9 +49,7 @@ export default function App() {
           >
             <Route
               path="/team"
-              element={
-                <div className="p-6">Team Evaluations (Coming Soon)</div>
-              }
+              element={<div className="p-6">Đánh giá tổ/nhóm (Sắp ra mắt)</div>}
             />
           </Route>
         </Route>

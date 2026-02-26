@@ -25,20 +25,25 @@ export const Layout: React.FC = () => {
   };
 
   const navItems = [
-    { name: "Dashboard", path: "/", icon: LayoutDashboard, public: true },
+    { name: "Bảng điều khiển", path: "/", icon: LayoutDashboard, public: true },
     {
-      name: "My Evaluation",
+      name: "Đánh giá cá nhân",
       path: "/evaluation",
       icon: FileText,
       roles: ["Teacher", "Staff", "TeamLeader", "Principal"],
     },
     {
-      name: "Team Evaluations",
+      name: "Đánh giá tổ/nhóm",
       path: "/team",
       icon: Users,
       roles: ["TeamLeader", "Principal"],
     },
-    { name: "Admin Panel", path: "/admin", icon: Settings, roles: ["Admin"] },
+    {
+      name: "Quản trị hệ thống",
+      path: "/admin",
+      icon: Settings,
+      roles: ["Admin"],
+    },
   ];
 
   const filteredNavItems = navItems.filter(
@@ -65,7 +70,9 @@ export const Layout: React.FC = () => {
         )}
       >
         <div className="flex items-center justify-between h-16 px-6 bg-slate-950">
-          <span className="text-lg font-bold tracking-tight">EvalSystem</span>
+          <span className="text-lg font-bold tracking-tight">
+            Hệ thống Đánh giá
+          </span>
           <button
             onClick={() => setSidebarOpen(false)}
             className="lg:hidden text-slate-400 hover:text-white"
@@ -116,7 +123,7 @@ export const Layout: React.FC = () => {
               className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
             >
               <LogOut size={18} />
-              Logout
+              Đăng xuất
             </button>
           </div>
         )}
@@ -127,7 +134,7 @@ export const Layout: React.FC = () => {
               className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
             >
               <UserCircle size={18} />
-              Login
+              Đăng nhập
             </Link>
           </div>
         )}

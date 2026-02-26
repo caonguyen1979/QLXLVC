@@ -22,7 +22,7 @@ export const Dashboard: React.FC = () => {
         const res = await apiCall("getDashboardData");
         setData(res);
       } catch (error) {
-        console.error("Failed to load dashboard", error);
+        console.error("Không thể tải bảng điều khiển", error);
       } finally {
         setLoading(false);
       }
@@ -33,21 +33,23 @@ export const Dashboard: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        Loading dashboard...
+        Đang tải bảng điều khiển...
       </div>
     );
   }
 
-  if (!data) return <div>Failed to load data</div>;
+  if (!data) return <div>Không thể tải dữ liệu</div>;
 
   const colors = ["#4f46e5", "#0ea5e9", "#10b981", "#f59e0b", "#ef4444"];
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Public Dashboard</h1>
+        <h1 className="text-2xl font-bold text-slate-900">
+          Bảng điều khiển chung
+        </h1>
         <p className="text-slate-500">
-          Overview of evaluation metrics across all teams.
+          Tổng quan về các chỉ số đánh giá của tất cả các tổ/nhóm.
         </p>
       </div>
 
@@ -58,7 +60,9 @@ export const Dashboard: React.FC = () => {
             <Users size={24} />
           </div>
           <div>
-            <p className="text-sm font-medium text-slate-500">Total Members</p>
+            <p className="text-sm font-medium text-slate-500">
+              Tổng số thành viên
+            </p>
             <p className="text-2xl font-bold text-slate-900">
               {data.totalMembers}
             </p>
@@ -71,7 +75,7 @@ export const Dashboard: React.FC = () => {
           </div>
           <div>
             <p className="text-sm font-medium text-slate-500">
-              Completion Rate
+              Tỷ lệ hoàn thành
             </p>
             <p className="text-2xl font-bold text-slate-900">
               {data.completionRate}%
@@ -85,7 +89,7 @@ export const Dashboard: React.FC = () => {
           </div>
           <div>
             <p className="text-sm font-medium text-slate-500">
-              Top Team Average
+              Điểm trung bình cao nhất
             </p>
             <p className="text-2xl font-bold text-slate-900">
               {Math.max(...data.teamAverages.map((t: any) => t.average))}
@@ -97,7 +101,7 @@ export const Dashboard: React.FC = () => {
       {/* Charts */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
         <h2 className="text-lg font-semibold text-slate-900 mb-6">
-          Team Averages
+          Điểm trung bình các tổ
         </h2>
         <div className="h-80 w-full">
           <ResponsiveContainer width="100%" height="100%">

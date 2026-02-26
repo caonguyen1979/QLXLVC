@@ -82,7 +82,7 @@ function handleLogin(username, password) {
     const row = data[i];
     if (row[1] === username && row[2] === password) { // Plain text as requested
       const user = {
-        id: row[0],
+        id: row[0] || row[1], // Fallback to username if id is empty
         username: row[1],
         role: row[3],
         name: row[4],
@@ -90,12 +90,12 @@ function handleLogin(username, password) {
       };
       
       const token = createJWT(user);
-      logAudit(user.id, 'LOGIN', 'User logged in');
+      logAudit(user.id, 'LOGIN', 'Đăng nhập thành công');
       
       return { token, user };
     }
   }
-  throw new Error("Invalid credentials");
+  throw new Error("Thông tin đăng nhập không hợp lệ");
 }
 
 function handleGetDashboardData() {
@@ -142,9 +142,57 @@ function handleGetTemplate(type) {
 }
 
 function handleSubmitEvaluation(user, payload) {
-  // Implementation for saving evaluation
-  logAudit(user.id, 'SUBMIT_EVAL', `Submitted for ${payload.year} Q${payload.quarter}`);
-  return { message: "Saved successfully" };
+  const sheetName = payload.type === 'NV' ? 'DataNV' : 'DataGV';
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(sheetName);
+  
+  if (!sheet) throw new Error("Không tìm thấy sheet dữ liệu (DataGV/DataNV)");
+
+  const userId = payload.userId || user.id || user.username;
+  const year = payload.year;
+  const quarter = payload.quarter;
+  const scores = payload.scores;
+
+  const data = sheet.getDataRange().getValues();
+  
+  const existingRows = {};
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const key = `${row[1]}_${row[2]}_${row[3]}_${row[4]}`;
+    existingRows[key] = i + 1;
+  }
+
+  scores.forEach(scoreItem => {
+    const key = `${userId}_${year}_${quarter}_${scoreItem.criteriaId}`;
+    const rowIndex = existingRows[key];
+    
+    if (rowIndex) {
+      let colToUpdate = -1;
+      if (scoreItem.type === 'selfScore') colToUpdate = 6;
+      else if (scoreItem.type === 'teamLeaderScore') colToUpdate = 7;
+      else if (scoreItem.type === 'principalScore') colToUpdate = 8;
+      
+      if (colToUpdate !== -1) {
+        sheet.getRange(rowIndex, colToUpdate).setValue(scoreItem.score);
+        if (scoreItem.type === 'selfScore') sheet.getRange(rowIndex, 9).setValue('SelfSubmitted');
+      }
+    } else {
+      const newRow = [
+        Utilities.getUuid(),
+        userId,
+        year,
+        quarter,
+        scoreItem.criteriaId,
+        scoreItem.type === 'selfScore' ? scoreItem.score : '',
+        scoreItem.type === 'teamLeaderScore' ? scoreItem.score : '',
+        scoreItem.type === 'principalScore' ? scoreItem.score : '',
+        scoreItem.type === 'selfScore' ? 'SelfSubmitted' : 'Draft'
+      ];
+      sheet.appendRow(newRow);
+    }
+  });
+
+  logAudit(userId, 'SUBMIT_EVAL', `Đã nộp đánh giá cho ${year} Q${quarter}`);
+  return { message: "Lưu thành công" };
 }
 
 function handleGetUsers() {
@@ -169,7 +217,7 @@ function logAudit(userId, action, details) {
   try {
     const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('AuditLog');
     if (sheet) {
-      sheet.appendRow([Utilities.getUuid(), new Date(), userId, action, details]);
+      sheet.appendRow([Utilities.getUuid(), new Date(), userId || 'UNKNOWN', action, details]);
     }
   } catch(e) {
     // Ignore logging errors

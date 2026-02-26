@@ -18,7 +18,7 @@ export const Evaluation: React.FC = () => {
         const res = await apiCall("getEvaluationTemplate", { type });
         setTemplate(res);
       } catch (error) {
-        console.error("Failed to load template", error);
+        console.error("Lỗi khi tải biểu mẫu", error);
       } finally {
         setLoading(false);
       }
@@ -51,19 +51,20 @@ export const Evaluation: React.FC = () => {
         year: "2023-2024", // Should come from config
         quarter: 1, // Should come from config
         scores: scoresArray,
+        type: user?.role === "Staff" ? "NV" : "GV",
       });
 
       Swal.fire({
         icon: "success",
-        title: "Saved",
-        text: "Your evaluation has been submitted successfully.",
+        title: "Đã lưu",
+        text: "Đánh giá của bạn đã được nộp thành công.",
         confirmButtonColor: "#4f46e5",
       });
     } catch (error: any) {
       Swal.fire({
         icon: "error",
-        title: "Error",
-        text: error.message || "Failed to save evaluation",
+        title: "Lỗi",
+        text: error.message || "Lưu đánh giá thất bại",
         confirmButtonColor: "#4f46e5",
       });
     } finally {
@@ -71,7 +72,7 @@ export const Evaluation: React.FC = () => {
     }
   };
 
-  if (loading) return <div>Loading evaluation form...</div>;
+  if (loading) return <div>Đang tải biểu mẫu đánh giá...</div>;
 
   // Group by section
   const groupedTemplate = template.reduce((acc: any, item: any) => {
@@ -84,8 +85,8 @@ export const Evaluation: React.FC = () => {
     <div className="max-w-5xl mx-auto space-y-6">
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Self Evaluation</h1>
-          <p className="text-slate-500">Quarter 1, 2023-2024</p>
+          <h1 className="text-2xl font-bold text-slate-900">Tự đánh giá</h1>
+          <p className="text-slate-500">Quý 1, 2023-2024</p>
         </div>
         <button
           onClick={handleSubmit}
@@ -93,7 +94,7 @@ export const Evaluation: React.FC = () => {
           className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors font-medium text-sm"
         >
           <Save size={16} />
-          {saving ? "Saving..." : "Save Evaluation"}
+          {saving ? "Đang lưu..." : "Lưu đánh giá"}
         </button>
       </div>
 
@@ -103,16 +104,16 @@ export const Evaluation: React.FC = () => {
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
                 <th className="p-4 font-semibold text-sm text-slate-900 w-1/4">
-                  Criteria
+                  Tiêu chí
                 </th>
                 <th className="p-4 font-semibold text-sm text-slate-900 w-1/2">
-                  Description
+                  Mô tả
                 </th>
                 <th className="p-4 font-semibold text-sm text-slate-900 w-24 text-center">
-                  Max
+                  Điểm tối đa
                 </th>
                 <th className="p-4 font-semibold text-sm text-slate-900 w-32 text-center">
-                  Self Score
+                  Tự chấm
                 </th>
               </tr>
             </thead>

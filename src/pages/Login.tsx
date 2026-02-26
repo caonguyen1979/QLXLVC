@@ -22,8 +22,8 @@ export const Login: React.FC = () => {
     } catch (error: any) {
       Swal.fire({
         icon: "error",
-        title: "Login Failed",
-        text: error.message || "Invalid credentials",
+        title: "Đăng nhập thất bại",
+        text: error.message || "Thông tin đăng nhập không hợp lệ",
         confirmButtonColor: "#4f46e5",
       });
     } finally {
@@ -35,14 +35,16 @@ export const Login: React.FC = () => {
     <div className="min-h-[80vh] flex items-center justify-center">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-100 p-8">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-slate-900">Welcome Back</h1>
-          <p className="text-slate-500 mt-2">Sign in to your account</p>
+          <h1 className="text-2xl font-bold text-slate-900">
+            Chào mừng trở lại
+          </h1>
+          <p className="text-slate-500 mt-2">Đăng nhập vào tài khoản của bạn</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Username
+              Tên đăng nhập
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -53,7 +55,7 @@ export const Login: React.FC = () => {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 sm:text-sm"
-                placeholder="Enter your username"
+                placeholder="Nhập tên đăng nhập"
                 required
               />
             </div>
@@ -61,7 +63,7 @@ export const Login: React.FC = () => {
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Password
+              Mật khẩu
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -83,12 +85,12 @@ export const Login: React.FC = () => {
             disabled={loading}
             className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {loading ? "Signing in..." : "Sign in"}
+            {loading ? "Đang đăng nhập..." : "Đăng nhập"}
           </button>
         </form>
 
         <div className="mt-6 text-center text-xs text-slate-500">
-          <p>Mock credentials for testing:</p>
+          <p>Tài khoản thử nghiệm:</p>
           <p>Admin: admin / admin</p>
           <p>Teacher: teacher / teacher</p>
         </div>
