@@ -37,7 +37,7 @@ export const Login: React.FC = () => {
         <div className="text-center mb-8">
           <img src="/logo.png" alt="Logo" className="w-16 h-16 object-contain mx-auto mb-4" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
           <h1 className="text-2xl font-bold text-slate-900">
-            Chào mừng trở lại
+            HỆ THỐNG ĐÁNH GIÁ XẾP LOẠI VIÊN CHỨC
           </h1>
           <p className="text-slate-500 mt-2">Đăng nhập vào tài khoản của bạn</p>
         </div>
@@ -89,12 +89,6 @@ export const Login: React.FC = () => {
             {loading ? "Đang đăng nhập..." : "Đăng nhập"}
           </button>
         </form>
-
-        <div className="mt-6 text-center text-xs text-slate-500">
-          <p>Tài khoản thử nghiệm:</p>
-          <p>Admin: admin / admin</p>
-          <p>Teacher: teacher / teacher</p>
-        </div>
       </div>
     </div>
   );
