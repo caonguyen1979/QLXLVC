@@ -22,7 +22,7 @@ export const Dashboard: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await apiCall("getDashboardData");
+        const res = await apiCall("getDashboardData", {});
         setData(res);
       } catch (error) {
         console.error("Không thể tải bảng điều khiển", error);
@@ -45,16 +45,35 @@ export const Dashboard: React.FC = () => {
 
   const colors = ["#4f46e5", "#0ea5e9", "#10b981", "#f59e0b", "#ef4444"];
 
+  // Calculate filtered data for charts and stats
+  const filteredDetails = data.details ? data.details.filter((d: any) => {
+    if (filterTeam && d.teamId !== filterTeam) return false;
+    if (filterName && !d.name.toLowerCase().includes(filterName.toLowerCase())) return false;
+    if (filterQuarter && d.quarter.toString() !== filterQuarter) return false;
+    return true;
+  }) : [];
+
+  const teamScores: Record<string, number[]> = {};
+  filteredDetails.forEach((d: any) => {
+    const teamId = d.teamId || 'Unknown';
+    if (!teamScores[teamId]) teamScores[teamId] = [];
+    const totalScore = d.scores['TOTAL'];
+    if (totalScore) {
+      const finalScore = totalScore.tl !== '' && totalScore.tl !== undefined ? totalScore.tl : totalScore.self;
+      teamScores[teamId].push(Number(finalScore) || 0);
+    }
+  });
+
+  const teamAverages = Object.keys(teamScores).map(team => {
+    const scores = teamScores[team];
+    const avg = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+    return { team, average: Math.round(avg * 10) / 10 };
+  });
+
+  const maxAverage = teamAverages.length > 0 ? Math.max(...teamAverages.map(t => t.average)) : 0;
+
   const renderTable = (type: string, title: string) => {
-    if (!data.details) return null;
-    
-    const filtered = data.details.filter((d: any) => {
-      if (d.type !== type) return false;
-      if (filterTeam && d.teamId !== filterTeam) return false;
-      if (filterName && !d.name.toLowerCase().includes(filterName.toLowerCase())) return false;
-      if (filterQuarter && d.quarter.toString() !== filterQuarter) return false;
-      return true;
-    });
+    const filtered = filteredDetails.filter((d: any) => d.type === type);
 
     if (filtered.length === 0) return null;
 
@@ -156,7 +175,7 @@ export const Dashboard: React.FC = () => {
               Điểm trung bình cao nhất
             </p>
             <p className="text-2xl font-bold text-slate-900">
-              {Math.max(...data.teamAverages.map((t: any) => t.average))}
+              {maxAverage}
             </p>
           </div>
         </div>
@@ -170,7 +189,7 @@ export const Dashboard: React.FC = () => {
         <div className="h-80 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
-              data={data.teamAverages}
+              data={teamAverages}
               margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
             >
               <CartesianGrid
@@ -198,7 +217,7 @@ export const Dashboard: React.FC = () => {
                 }}
               />
               <Bar dataKey="average" radius={[4, 4, 0, 0]}>
-                {data.teamAverages.map((entry: any, index: number) => (
+                {teamAverages.map((entry: any, index: number) => (
                   <Cell
                     key={`cell-${index}`}
                     fill={colors[index % colors.length]}

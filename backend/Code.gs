@@ -39,7 +39,7 @@ function doPost(e) {
         result = handleLogin(payload.username, payload.password);
         break;
       case 'getDashboardData':
-        result = handleGetDashboardData();
+        result = handleGetDashboardData(payload);
         break;
       case 'getConfig':
         result = handleGetConfig();
@@ -120,7 +120,10 @@ function handleLogin(username, password) {
   throw new Error("Thông tin đăng nhập không hợp lệ");
 }
 
-function handleGetDashboardData() {
+function handleGetDashboardData(payload) {
+  const filterYear = payload?.year;
+  const filterQuarter = payload?.quarter;
+
   const usersSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('users');
   const usersData = usersSheet ? usersSheet.getDataRange().getValues() : [];
   
@@ -147,6 +150,9 @@ function handleGetDashboardData() {
     const criteriaId = row[4];
     const selfScore = row[5];
     const tlScore = row[6];
+    
+    if (filterYear && year != filterYear) return;
+    if (filterQuarter && quarter != filterQuarter) return;
     
     submittedUsers.add(userId);
     
