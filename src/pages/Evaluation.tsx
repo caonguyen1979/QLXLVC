@@ -48,6 +48,8 @@ export const Evaluation: React.FC = () => {
           showConfirmButton: false,
           timer: 3000
         });
+        // Set to max score instead of returning
+        setScores((prev) => ({ ...prev, [id]: maxScore }));
         return;
       }
       setScores((prev) => ({ ...prev, [id]: num }));
@@ -141,10 +143,10 @@ export const Evaluation: React.FC = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="p-4 font-semibold text-sm text-slate-900 w-1/3">
+                <th className="p-4 font-semibold text-sm text-slate-900 w-2/5">
                   Tiêu chí
                 </th>
-                <th className="p-4 font-semibold text-sm text-slate-900 w-1/3">
+                <th className="p-4 font-semibold text-sm text-slate-900 w-2/5">
                   Mô tả
                 </th>
                 <th className="p-4 font-semibold text-sm text-slate-900 w-24 text-center">
@@ -172,10 +174,10 @@ export const Evaluation: React.FC = () => {
                         key={item.id}
                         className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
                       >
-                        <td className="p-4 text-sm text-slate-700 font-medium align-top">
+                        <td className="p-4 text-sm text-slate-700 font-medium align-top whitespace-pre-wrap">
                           {item.criteria}
                         </td>
-                        <td className="p-4 text-xs text-slate-600 align-top">
+                        <td className="p-4 text-xs text-slate-600 align-top whitespace-pre-wrap">
                           {item.description}
                         </td>
                         <td className="p-4 text-sm text-slate-500 text-center align-top">
@@ -186,9 +188,9 @@ export const Evaluation: React.FC = () => {
                             type="number"
                             min="0"
                             max={item.maxScore}
-                            value={scores[item.id] || ""}
+                            value={scores[item.id] !== undefined ? scores[item.id] : ""}
                             onChange={(e) =>
-                              handleScoreChange(item.id, e.target.value, Number(item.maxScore))
+                              handleScoreChange(item.id, e.target.value, Number(item.maxScore) || 0)
                             }
                             className="w-full text-center p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 sm:text-sm"
                           />
