@@ -10,7 +10,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import { Users, CheckCircle, TrendingUp } from "lucide-react";
+import { Users, CheckCircle, TrendingUp, Printer } from "lucide-react";
 
 export const Dashboard: React.FC = () => {
   const [data, setData] = useState<any>(null);
@@ -59,7 +59,7 @@ export const Dashboard: React.FC = () => {
     if (!teamScores[teamId]) teamScores[teamId] = [];
     const totalScore = d.scores['TOTAL'];
     if (totalScore) {
-      const finalScore = totalScore.tl !== '' && totalScore.tl !== undefined ? totalScore.tl : totalScore.self;
+      const finalScore = totalScore.pr !== '' && totalScore.pr !== undefined ? totalScore.pr : (totalScore.tl !== '' && totalScore.tl !== undefined ? totalScore.tl : totalScore.self);
       teamScores[teamId].push(Number(finalScore) || 0);
     }
   });
@@ -87,10 +87,10 @@ export const Dashboard: React.FC = () => {
     const criteriaList = Array.from(criteriaSet).sort();
 
     return (
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mt-6">
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mt-6 print:shadow-none print:border-none print:p-0">
         <h2 className="text-lg font-semibold text-slate-900 mb-4">{title}</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse whitespace-nowrap">
+        <div className="overflow-x-auto print:overflow-visible">
+          <table className="w-full text-left border-collapse whitespace-nowrap print:whitespace-normal">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
                 <th className="p-3 font-semibold text-sm text-slate-900">Họ và tên</th>
@@ -110,11 +110,11 @@ export const Dashboard: React.FC = () => {
                   <td className="p-3 text-sm text-slate-700">{row.quarter}</td>
                   {criteriaList.map(c => (
                     <td key={c} className="p-3 text-sm text-slate-700 text-center">
-                      {row.scores[c]?.tl !== '' && row.scores[c]?.tl !== undefined ? row.scores[c].tl : row.scores[c]?.self || '-'}
+                      {row.scores[c]?.pr !== '' && row.scores[c]?.pr !== undefined ? row.scores[c].pr : (row.scores[c]?.tl !== '' && row.scores[c]?.tl !== undefined ? row.scores[c].tl : row.scores[c]?.self || '-')}
                     </td>
                   ))}
                   <td className="p-3 text-sm font-bold text-indigo-600 text-center">
-                    {row.scores['TOTAL']?.tl !== '' && row.scores['TOTAL']?.tl !== undefined ? row.scores['TOTAL'].tl : row.scores['TOTAL']?.self || '-'}
+                    {row.scores['TOTAL']?.pr !== '' && row.scores['TOTAL']?.pr !== undefined ? row.scores['TOTAL'].pr : (row.scores['TOTAL']?.tl !== '' && row.scores['TOTAL']?.tl !== undefined ? row.scores['TOTAL'].tl : row.scores['TOTAL']?.self || '-')}
                   </td>
                 </tr>
               ))}
@@ -136,8 +136,46 @@ export const Dashboard: React.FC = () => {
         </p>
       </div>
 
+      {/* Filters */}
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap gap-4 items-center justify-between print:hidden">
+        <div className="flex flex-wrap gap-4 items-center">
+          <input 
+            type="text" 
+            placeholder="Lọc theo tên..." 
+            value={filterName}
+            onChange={e => setFilterName(e.target.value)}
+            className="p-2 border border-slate-300 rounded-lg text-sm"
+          />
+          <input 
+            type="text" 
+            placeholder="Lọc theo tổ..." 
+            value={filterTeam}
+            onChange={e => setFilterTeam(e.target.value)}
+            className="p-2 border border-slate-300 rounded-lg text-sm"
+          />
+          <select 
+            value={filterQuarter}
+            onChange={e => setFilterQuarter(e.target.value)}
+            className="p-2 border border-slate-300 rounded-lg text-sm"
+          >
+            <option value="">Tất cả các Quý</option>
+            <option value="1">Quý 1</option>
+            <option value="2">Quý 2</option>
+            <option value="3">Quý 3</option>
+            <option value="4">Quý 4</option>
+          </select>
+        </div>
+        <button 
+          onClick={() => window.print()}
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors text-sm font-medium"
+        >
+          <Printer size={16} />
+          In danh sách
+        </button>
+      </div>
+
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 print:hidden">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
           <div className="p-3 bg-indigo-50 text-indigo-600 rounded-lg">
             <Users size={24} />
@@ -182,7 +220,7 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Charts */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 print:hidden">
         <h2 className="text-lg font-semibold text-slate-900 mb-6">
           Điểm trung bình các tổ
         </h2>
@@ -227,35 +265,6 @@ export const Dashboard: React.FC = () => {
             </BarChart>
           </ResponsiveContainer>
         </div>
-      </div>
-
-      {/* Filters */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap gap-4 items-center">
-        <input 
-          type="text" 
-          placeholder="Lọc theo tên..." 
-          value={filterName}
-          onChange={e => setFilterName(e.target.value)}
-          className="p-2 border border-slate-300 rounded-lg text-sm"
-        />
-        <input 
-          type="text" 
-          placeholder="Lọc theo tổ..." 
-          value={filterTeam}
-          onChange={e => setFilterTeam(e.target.value)}
-          className="p-2 border border-slate-300 rounded-lg text-sm"
-        />
-        <select 
-          value={filterQuarter}
-          onChange={e => setFilterQuarter(e.target.value)}
-          className="p-2 border border-slate-300 rounded-lg text-sm"
-        >
-          <option value="">Tất cả các Quý</option>
-          <option value="1">Quý 1</option>
-          <option value="2">Quý 2</option>
-          <option value="3">Quý 3</option>
-          <option value="4">Quý 4</option>
-        </select>
       </div>
 
       {renderTable('GV', 'Danh sách đánh giá Giáo viên')}

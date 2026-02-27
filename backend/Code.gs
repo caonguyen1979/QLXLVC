@@ -150,6 +150,7 @@ function handleGetDashboardData(payload) {
     const criteriaId = row[4];
     const selfScore = row[5];
     const tlScore = row[6];
+    const prScore = row[7];
     
     if (filterYear && year != filterYear) return;
     if (filterQuarter && quarter != filterQuarter) return;
@@ -173,13 +174,14 @@ function handleGetDashboardData(payload) {
     
     details[key].scores[criteriaId] = {
       self: selfScore,
-      tl: tlScore
+      tl: tlScore,
+      pr: prScore
     };
 
     if (criteriaId === 'TOTAL') {
       const teamId = userMap[userId]?.teamId || 'Unknown';
       if (!teamScores[teamId]) teamScores[teamId] = [];
-      const finalScore = tlScore !== '' ? tlScore : selfScore;
+      const finalScore = prScore !== '' ? prScore : (tlScore !== '' ? tlScore : selfScore);
       teamScores[teamId].push(Number(finalScore) || 0);
     }
   };
@@ -424,12 +426,15 @@ function handleGetTeamData(user, payload) {
   const memberIds = new Set();
   
   for (let i = 1; i < usersData.length; i++) {
-    if (usersData[i][5] === user.teamId) {
+    const role = usersData[i][3];
+    if (role.toLowerCase() === 'admin') continue;
+    
+    if (user.role.toLowerCase() === 'principal' || usersData[i][5] === user.teamId) {
       const uid = usersData[i][0] || usersData[i][1];
       teamMembers.push({
         id: uid,
         username: usersData[i][1],
-        role: usersData[i][3],
+        role: role,
         name: usersData[i][4],
         teamId: usersData[i][5]
       });

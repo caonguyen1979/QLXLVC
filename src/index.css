@@ -9,3 +9,13 @@ body {
   font-family: "Inter", sans-serif;
   background-color: #f8fafc;
 }
+
+@media print {
+  body {
+    background-color: white;
+  }
+  @page {
+    margin: 1cm;
+    size: landscape;
+  }
+}

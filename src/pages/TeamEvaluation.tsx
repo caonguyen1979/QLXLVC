@@ -50,7 +50,9 @@ export const TeamEvaluation: React.FC = () => {
       const userEvals = teamData.evaluations[member.id] || {};
       const initialScores: Record<string, number> = {};
       res.forEach((item: any) => {
-        if (userEvals[item.id] && userEvals[item.id].tlScore !== "") {
+        if (user?.role.toLowerCase() === 'principal' && userEvals[item.id] && userEvals[item.id].prScore !== "") {
+          initialScores[item.id] = Number(userEvals[item.id].prScore);
+        } else if (userEvals[item.id] && userEvals[item.id].tlScore !== "") {
           initialScores[item.id] = Number(userEvals[item.id].tlScore);
         } else if (userEvals[item.id] && userEvals[item.id].selfScore !== "") {
           initialScores[item.id] = Number(userEvals[item.id].selfScore); // Default to self score
@@ -92,6 +94,7 @@ export const TeamEvaluation: React.FC = () => {
   const handleSubmit = async () => {
     setSaving(true);
     try {
+      const scoreType = user?.role.toLowerCase() === 'principal' ? "principalScore" : "teamLeaderScore";
       let totalScore = 0;
       const scoresArray = template.map((item) => {
         const score = scores[item.id] || 0;
@@ -99,7 +102,7 @@ export const TeamEvaluation: React.FC = () => {
         return {
           criteriaId: item.id,
           score: score,
-          type: "teamLeaderScore",
+          type: scoreType,
         };
       });
 
@@ -107,7 +110,7 @@ export const TeamEvaluation: React.FC = () => {
       scoresArray.push({
         criteriaId: "TOTAL",
         score: totalScore,
-        type: "teamLeaderScore",
+        type: scoreType,
       });
 
       const isNV = selectedUser.role.toLowerCase() === "staff" || selectedUser.teamId === "VP";
@@ -122,7 +125,7 @@ export const TeamEvaluation: React.FC = () => {
       Swal.fire({
         icon: "success",
         title: "Đã lưu",
-        text: "Đánh giá của tổ trưởng đã được lưu.",
+        text: user?.role.toLowerCase() === 'principal' ? "Đánh giá của hiệu trưởng đã được lưu." : "Đánh giá của tổ trưởng đã được lưu.",
         confirmButtonColor: "#4f46e5",
       });
       
@@ -280,6 +283,9 @@ export const TeamEvaluation: React.FC = () => {
                 <th className="p-4 font-semibold text-sm text-slate-900 text-center">Trạng thái</th>
                 <th className="p-4 font-semibold text-sm text-slate-900 text-center">Điểm tự chấm</th>
                 <th className="p-4 font-semibold text-sm text-slate-900 text-center">Điểm tổ trưởng</th>
+                {user?.role.toLowerCase() === 'principal' && (
+                  <th className="p-4 font-semibold text-sm text-slate-900 text-center">Điểm hiệu trưởng</th>
+                )}
                 <th className="p-4 font-semibold text-sm text-slate-900 text-right">Thao tác</th>
               </tr>
             </thead>
@@ -288,13 +294,16 @@ export const TeamEvaluation: React.FC = () => {
                 const evals = teamData.evaluations[member.id] || {};
                 const hasSelfScore = evals['TOTAL'] && evals['TOTAL'].selfScore !== "";
                 const hasTlScore = evals['TOTAL'] && evals['TOTAL'].tlScore !== "";
+                const hasPrScore = evals['TOTAL'] && evals['TOTAL'].prScore !== "";
                 
                 return (
                   <tr key={member.id} className="border-b border-slate-100 hover:bg-slate-50">
                     <td className="p-4 text-sm text-slate-700 font-medium">{member.name}</td>
                     <td className="p-4 text-sm text-slate-700">{translateRole(member.role)}</td>
                     <td className="p-4 text-sm text-center">
-                      {hasTlScore ? (
+                      {hasPrScore ? (
+                        <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">HT đã duyệt</span>
+                      ) : hasTlScore ? (
                         <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">Đã duyệt</span>
                       ) : hasSelfScore ? (
                         <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">Chờ duyệt</span>
@@ -308,6 +317,11 @@ export const TeamEvaluation: React.FC = () => {
                     <td className="p-4 text-sm text-indigo-600 text-center font-bold">
                       {evals['TOTAL']?.tlScore || '-'}
                     </td>
+                    {user?.role.toLowerCase() === 'principal' && (
+                      <td className="p-4 text-sm text-purple-600 text-center font-bold">
+                        {evals['TOTAL']?.prScore || '-'}
+                      </td>
+                    )}
                     <td className="p-4 text-right">
                       <button 
                         onClick={() => handleSelectUser(member)}
