@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
+import { translateRole } from "../utils/translate";
 import {
   LayoutDashboard,
   FileText,
@@ -89,7 +90,7 @@ export const Layout: React.FC = () => {
               <UserCircle size={36} className="text-slate-400" />
               <div>
                 <p className="font-medium text-sm">{user.name}</p>
-                <p className="text-xs text-slate-400">{user.role}</p>
+                <p className="text-xs text-slate-400">{translateRole(user.role)}</p>
               </div>
             </div>
           )}

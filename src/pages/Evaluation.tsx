@@ -10,11 +10,12 @@ export const Evaluation: React.FC = () => {
   const [scores, setScores] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [tlEvaluated, setTlEvaluated] = useState(false);
 
   const [config, setConfig] = useState({ year: "2023-2024", quarter: "1" });
 
   useEffect(() => {
-    const fetchTemplate = async () => {
+    const fetchTemplateAndData = async () => {
       try {
         const conf = await apiCall("getConfig");
         setConfig({
@@ -24,15 +25,31 @@ export const Evaluation: React.FC = () => {
 
         const isNV = user?.role.toLowerCase() === "staff" || user?.teamId === "VP";
         const type = isNV ? "NV" : "GV";
-        const res = await apiCall("getEvaluationTemplate", { type });
-        setTemplate(res);
+        
+        const [templateRes, evalRes] = await Promise.all([
+          apiCall("getEvaluationTemplate", { type }),
+          apiCall("getUserEvaluation", {
+            userId: user?.id || user?.username,
+            year: conf.ACTIVE_YEAR || "2023-2024",
+            quarter: conf.ACTIVE_QUARTER || "1",
+            type
+          })
+        ]);
+        
+        setTemplate(templateRes);
+        if (evalRes && evalRes.scores) {
+          setScores(evalRes.scores);
+        }
+        if (evalRes && evalRes.tlEvaluated) {
+          setTlEvaluated(true);
+        }
       } catch (error) {
-        console.error("Lỗi khi tải biểu mẫu", error);
+        console.error("Lỗi khi tải dữ liệu", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchTemplate();
+    fetchTemplateAndData();
   }, [user]);
 
   const handleScoreChange = (id: string, value: string, maxScore: number) => {
@@ -136,7 +153,7 @@ export const Evaluation: React.FC = () => {
         </div>
         <button
           onClick={handleSubmit}
-          disabled={saving}
+          disabled={saving || tlEvaluated}
           className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors font-medium text-sm"
         >
           <Save size={16} />
@@ -208,7 +225,8 @@ export const Evaluation: React.FC = () => {
                                 onChange={(e) =>
                                   handleScoreChange(item.id, e.target.value, maxScoreVal)
                                 }
-                                className="w-24 text-center px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 text-sm font-medium text-slate-900 transition-shadow"
+                                disabled={tlEvaluated}
+                                className="w-24 text-center px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 text-sm font-medium text-slate-900 transition-shadow disabled:bg-slate-100 disabled:text-slate-500"
                                 placeholder="0"
                               />
                             </div>

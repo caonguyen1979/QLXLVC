@@ -73,6 +73,9 @@ function doPost(e) {
       case 'getTeamData':
         result = handleGetTeamData(user, payload);
         break;
+      case 'getUserEvaluation':
+        result = handleGetUserEvaluation(user, payload);
+        break;
       default:
         throw new Error("Unknown action: " + action);
     }
@@ -232,14 +235,20 @@ function handleGetTemplate(type) {
 }
 
 function handleSubmitEvaluation(user, payload) {
+  const year = payload.year;
+  const quarter = payload.quarter;
+
+  const config = handleGetConfig();
+  if (config[`LOCKED_Q${quarter}`] === 'true' && user.role.toLowerCase() !== 'admin') {
+    throw new Error(`Quý ${quarter} đã bị khóa, không thể nộp đánh giá.`);
+  }
+
   const sheetName = payload.type === 'NV' ? 'DataNV' : 'DataGV';
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(sheetName);
   
   if (!sheet) throw new Error("Không tìm thấy sheet dữ liệu (DataGV/DataNV)");
 
   const userId = payload.userId || user.id || user.username;
-  const year = payload.year;
-  const quarter = payload.quarter;
   const scores = payload.scores;
 
   const data = sheet.getDataRange().getValues();
@@ -348,21 +357,54 @@ function handleUpdateConfig(payload) {
   if (!sheet) throw new Error("Không tìm thấy sheet Config");
   const data = sheet.getDataRange().getValues();
   
-  let yearRow = -1;
-  let quarterRow = -1;
-  
+  const configMap = {};
   for (let i = 0; i < data.length; i++) {
-    if (data[i][0] === 'ACTIVE_YEAR') yearRow = i + 1;
-    if (data[i][0] === 'ACTIVE_QUARTER') quarterRow = i + 1;
+    configMap[data[i][0]] = i + 1;
   }
   
-  if (yearRow !== -1) sheet.getRange(yearRow, 2).setValue(payload.year);
-  else sheet.appendRow(['ACTIVE_YEAR', payload.year]);
+  const updateOrAdd = (key, value) => {
+    if (configMap[key]) {
+      sheet.getRange(configMap[key], 2).setValue(value);
+    } else {
+      sheet.appendRow([key, value]);
+      configMap[key] = sheet.getLastRow();
+    }
+  };
   
-  if (quarterRow !== -1) sheet.getRange(quarterRow, 2).setValue(payload.quarter);
-  else sheet.appendRow(['ACTIVE_QUARTER', payload.quarter]);
+  updateOrAdd('ACTIVE_YEAR', payload.year);
+  updateOrAdd('ACTIVE_QUARTER', payload.quarter);
+  updateOrAdd('LOCKED_Q1', payload.lockedQuarters.includes(1) ? 'true' : 'false');
+  updateOrAdd('LOCKED_Q2', payload.lockedQuarters.includes(2) ? 'true' : 'false');
+  updateOrAdd('LOCKED_Q3', payload.lockedQuarters.includes(3) ? 'true' : 'false');
+  updateOrAdd('LOCKED_Q4', payload.lockedQuarters.includes(4) ? 'true' : 'false');
   
   return { message: "Cập nhật cấu hình thành công" };
+}
+
+function handleGetUserEvaluation(user, payload) {
+  const sheetName = payload.type === 'NV' ? 'DataNV' : 'DataGV';
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(sheetName);
+  if (!sheet) return {};
+  
+  const userId = payload.userId || user.id || user.username;
+  const year = payload.year;
+  const quarter = payload.quarter;
+  
+  const data = sheet.getDataRange().getValues();
+  const scores = {};
+  let tlEvaluated = false;
+  
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (row[1] == userId && row[2] == year && row[3] == quarter) {
+      scores[row[4]] = row[5]; // selfScore
+      if (row[6] !== '') {
+        tlEvaluated = true;
+      }
+    }
+  }
+  
+  return { scores, tlEvaluated };
 }
 
 function handleGetTeamData(user, payload) {

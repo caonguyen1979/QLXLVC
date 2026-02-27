@@ -4,6 +4,8 @@ import { apiCall } from "../services/api";
 import Swal from "sweetalert2";
 import { Save, Edit } from "lucide-react";
 
+import { translateRole } from "../utils/translate";
+
 export const TeamEvaluation: React.FC = () => {
   const { user } = useAuthStore();
   const [teamData, setTeamData] = useState<any>(null);
@@ -290,7 +292,7 @@ export const TeamEvaluation: React.FC = () => {
                 return (
                   <tr key={member.id} className="border-b border-slate-100 hover:bg-slate-50">
                     <td className="p-4 text-sm text-slate-700 font-medium">{member.name}</td>
-                    <td className="p-4 text-sm text-slate-700">{member.role}</td>
+                    <td className="p-4 text-sm text-slate-700">{translateRole(member.role)}</td>
                     <td className="p-4 text-sm text-center">
                       {hasTlScore ? (
                         <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">Đã duyệt</span>

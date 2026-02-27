@@ -2,11 +2,12 @@ import React, { useState, useEffect } from "react";
 import { apiCall } from "../services/api";
 import Swal from "sweetalert2";
 import { Plus, Edit, Trash2 } from "lucide-react";
+import { translateRole } from "../utils/translate";
 
 export const Admin: React.FC = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
-  const [config, setConfig] = useState({ year: "2023-2024", quarter: "1" });
+  const [config, setConfig] = useState({ year: "2023-2024", quarter: "1", lockedQuarters: [] as number[] });
   const [savingConfig, setSavingConfig] = useState(false);
 
   const fetchUsers = async () => {
@@ -23,9 +24,16 @@ export const Admin: React.FC = () => {
   const fetchConfig = async () => {
     try {
       const res = await apiCall("getConfig");
+      const locked = [];
+      if (res.LOCKED_Q1 === 'true') locked.push(1);
+      if (res.LOCKED_Q2 === 'true') locked.push(2);
+      if (res.LOCKED_Q3 === 'true') locked.push(3);
+      if (res.LOCKED_Q4 === 'true') locked.push(4);
+
       setConfig({
         year: res.ACTIVE_YEAR || "2023-2024",
         quarter: res.ACTIVE_QUARTER || "1",
+        lockedQuarters: locked
       });
     } catch (error) {
       console.error(error);
@@ -47,6 +55,15 @@ export const Admin: React.FC = () => {
     } finally {
       setSavingConfig(false);
     }
+  };
+
+  const toggleLock = (q: number) => {
+    setConfig(prev => ({
+      ...prev,
+      lockedQuarters: prev.lockedQuarters.includes(q) 
+        ? prev.lockedQuarters.filter(x => x !== q)
+        : [...prev.lockedQuarters, q]
+    }));
   };
 
   const handleAddUser = async () => {
@@ -230,9 +247,9 @@ export const Admin: React.FC = () => {
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
                     type="checkbox"
-                    value=""
                     className="sr-only peer"
-                    defaultChecked={q === 1}
+                    checked={config.lockedQuarters.includes(q)}
+                    onChange={() => toggleLock(q)}
                   />
                   <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                   <span className="ml-3 text-sm font-medium text-slate-600">
@@ -287,7 +304,7 @@ export const Admin: React.FC = () => {
                     <td className="p-4 text-sm text-slate-700">{u.name}</td>
                     <td className="p-4 text-sm text-slate-700">
                       <span className="px-2 py-1 bg-slate-100 rounded-md text-xs font-medium text-slate-600">
-                        {u.role}
+                        {translateRole(u.role)}
                       </span>
                     </td>
                     <td className="p-4 text-sm text-slate-700">{u.teamId}</td>
