@@ -66,6 +66,10 @@ function doPost(e) {
         if (user.role.toLowerCase() !== 'admin') throw new Error("Forbidden");
         result = handleDeleteUser(payload);
         break;
+      case 'updateConfig':
+        if (user.role.toLowerCase() !== 'admin') throw new Error("Forbidden");
+        result = handleUpdateConfig(payload);
+        break;
       default:
         throw new Error("Unknown action: " + action);
     }
@@ -308,6 +312,28 @@ function handleDeleteUser(payload) {
     }
   }
   throw new Error("Không tìm thấy người dùng");
+}
+
+function handleUpdateConfig(payload) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('Config');
+  if (!sheet) throw new Error("Không tìm thấy sheet Config");
+  const data = sheet.getDataRange().getValues();
+  
+  let yearRow = -1;
+  let quarterRow = -1;
+  
+  for (let i = 0; i < data.length; i++) {
+    if (data[i][0] === 'ACTIVE_YEAR') yearRow = i + 1;
+    if (data[i][0] === 'ACTIVE_QUARTER') quarterRow = i + 1;
+  }
+  
+  if (yearRow !== -1) sheet.getRange(yearRow, 2).setValue(payload.year);
+  else sheet.appendRow(['ACTIVE_YEAR', payload.year]);
+  
+  if (quarterRow !== -1) sheet.getRange(quarterRow, 2).setValue(payload.quarter);
+  else sheet.appendRow(['ACTIVE_QUARTER', payload.quarter]);
+  
+  return { message: "Cập nhật cấu hình thành công" };
 }
 
 // --- Utilities ---

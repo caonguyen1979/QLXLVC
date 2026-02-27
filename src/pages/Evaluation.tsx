@@ -11,10 +11,19 @@ export const Evaluation: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  const [config, setConfig] = useState({ year: "2023-2024", quarter: "1" });
+
   useEffect(() => {
     const fetchTemplate = async () => {
       try {
-        const type = user?.role === "Staff" ? "NV" : "GV";
+        const conf = await apiCall("getConfig");
+        setConfig({
+          year: conf.ACTIVE_YEAR || "2023-2024",
+          quarter: conf.ACTIVE_QUARTER || "1",
+        });
+
+        const isNV = user?.role.toLowerCase() === "staff" || user?.teamId === "VP";
+        const type = isNV ? "NV" : "GV";
         const res = await apiCall("getEvaluationTemplate", { type });
         setTemplate(res);
       } catch (error) {
@@ -58,12 +67,13 @@ export const Evaluation: React.FC = () => {
         type: "selfScore",
       });
 
+      const isNV = user?.role.toLowerCase() === "staff" || user?.teamId === "VP";
       await apiCall("submitEvaluation", {
         userId: user?.id || user?.username,
-        year: "2023-2024", // Should come from config
-        quarter: 1, // Should come from config
+        year: config.year,
+        quarter: config.quarter,
         scores: scoresArray,
-        type: user?.role.toLowerCase() === "staff" ? "NV" : "GV",
+        type: isNV ? "NV" : "GV",
       });
 
       Swal.fire({
@@ -102,7 +112,7 @@ export const Evaluation: React.FC = () => {
       <div className="flex justify-between items-end">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Tự đánh giá</h1>
-          <p className="text-slate-500">Quý 1, 2023-2024</p>
+          <p className="text-slate-500">Quý {config.quarter}, {config.year}</p>
         </div>
         <button
           onClick={handleSubmit}
@@ -119,10 +129,10 @@ export const Evaluation: React.FC = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="p-4 font-semibold text-sm text-slate-900 w-1/4">
+                <th className="p-4 font-semibold text-sm text-slate-900 w-1/3">
                   Tiêu chí
                 </th>
-                <th className="p-4 font-semibold text-sm text-slate-900 w-1/2">
+                <th className="p-4 font-semibold text-sm text-slate-900 w-1/3">
                   Mô tả
                 </th>
                 <th className="p-4 font-semibold text-sm text-slate-900 w-24 text-center">

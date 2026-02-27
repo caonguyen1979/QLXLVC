@@ -6,6 +6,8 @@ import { Plus, Edit, Trash2 } from "lucide-react";
 export const Admin: React.FC = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
+  const [config, setConfig] = useState({ year: "2023-2024", quarter: "1" });
+  const [savingConfig, setSavingConfig] = useState(false);
 
   const fetchUsers = async () => {
     try {
@@ -18,9 +20,34 @@ export const Admin: React.FC = () => {
     }
   };
 
+  const fetchConfig = async () => {
+    try {
+      const res = await apiCall("getConfig");
+      setConfig({
+        year: res.ACTIVE_YEAR || "2023-2024",
+        quarter: res.ACTIVE_QUARTER || "1",
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
+    fetchConfig();
   }, []);
+
+  const handleSaveConfig = async () => {
+    setSavingConfig(true);
+    try {
+      await apiCall("updateConfig", config);
+      Swal.fire("Thành công", "Đã lưu cấu hình", "success");
+    } catch (e: any) {
+      Swal.fire("Lỗi", e.message, "error");
+    } finally {
+      setSavingConfig(false);
+    }
+  };
 
   const handleAddUser = async () => {
     const { value: formValues } = await Swal.fire({
@@ -153,16 +180,23 @@ export const Admin: React.FC = () => {
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 Năm học hiện tại
               </label>
-              <select className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-600">
-                <option>2023-2024</option>
-                <option>2024-2025</option>
-              </select>
+              <input
+                type="text"
+                value={config.year}
+                onChange={(e) => setConfig({ ...config, year: e.target.value })}
+                placeholder="Ví dụ: 2026"
+                className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-600"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 Quý hiện tại
               </label>
-              <select className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-600">
+              <select
+                value={config.quarter}
+                onChange={(e) => setConfig({ ...config, quarter: e.target.value })}
+                className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-600"
+              >
                 <option value="1">Quý 1</option>
                 <option value="2">Quý 2</option>
                 <option value="3">Quý 3</option>
@@ -172,9 +206,11 @@ export const Admin: React.FC = () => {
             <div className="pt-4 border-t border-slate-100">
               <button
                 type="button"
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium"
+                onClick={handleSaveConfig}
+                disabled={savingConfig}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium disabled:opacity-50"
               >
-                Lưu cấu hình
+                {savingConfig ? "Đang lưu..." : "Lưu cấu hình"}
               </button>
             </div>
           </form>
