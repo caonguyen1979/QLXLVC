@@ -119,7 +119,13 @@ export const Evaluation: React.FC = () => {
 
   // Calculate current total
   const currentTotal = template.reduce((sum, item) => sum + (scores[item.id] || 0), 0);
-  const maxTotal = template.reduce((sum, item) => sum + (Number(item.maxScore) || 0), 0);
+  const maxTotal = template.reduce((sum, item) => {
+    let maxScoreVal = Number(item.maxScore);
+    if (!maxScoreVal && !isNaN(Number(item.description)) && item.description !== "") {
+      maxScoreVal = Number(item.description);
+    }
+    return sum + (maxScoreVal || 0);
+  }, 0);
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -143,17 +149,14 @@ export const Evaluation: React.FC = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="p-4 font-semibold text-sm text-slate-900 w-2/5">
-                  Tiêu chí
+                <th className="px-6 py-4 font-semibold text-sm text-slate-900 w-3/5">
+                  Nội dung đánh giá
                 </th>
-                <th className="p-4 font-semibold text-sm text-slate-900 w-2/5">
-                  Mô tả
+                <th className="px-6 py-4 font-semibold text-sm text-slate-900 w-1/5 text-center">
+                  Điểm chuẩn
                 </th>
-                <th className="p-4 font-semibold text-sm text-slate-900 w-24 text-center">
-                  Điểm tối đa
-                </th>
-                <th className="p-4 font-semibold text-sm text-slate-900 w-32 text-center">
-                  Tự chấm
+                <th className="px-6 py-4 font-semibold text-sm text-slate-900 w-1/5 text-center">
+                  Điểm tự chấm
                 </th>
               </tr>
             </thead>
@@ -161,53 +164,69 @@ export const Evaluation: React.FC = () => {
               {Object.entries(groupedTemplate).map(
                 ([section, items]: [string, any]) => (
                   <React.Fragment key={section}>
-                    <tr className="bg-slate-100 border-b border-slate-200">
+                    <tr className="bg-slate-100/50 border-b border-slate-200">
                       <td
-                        colSpan={4}
-                        className="p-3 font-bold text-sm text-slate-800"
+                        colSpan={3}
+                        className="px-6 py-4 font-bold text-sm text-slate-800"
                       >
                         {section}
                       </td>
                     </tr>
-                    {items.map((item: any) => (
-                      <tr
-                        key={item.id}
-                        className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
-                      >
-                        <td className="p-4 text-sm text-slate-700 font-medium align-top whitespace-pre-wrap">
-                          {item.criteria}
-                        </td>
-                        <td className="p-4 text-xs text-slate-600 align-top whitespace-pre-wrap">
-                          {item.description}
-                        </td>
-                        <td className="p-4 text-sm text-slate-500 text-center align-top">
-                          {item.maxScore}
-                        </td>
-                        <td className="p-4 align-top">
-                          <input
-                            type="number"
-                            min="0"
-                            max={item.maxScore}
-                            value={scores[item.id] !== undefined ? scores[item.id] : ""}
-                            onChange={(e) =>
-                              handleScoreChange(item.id, e.target.value, Number(item.maxScore) || 0)
-                            }
-                            className="w-full text-center p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 sm:text-sm"
-                          />
-                        </td>
-                      </tr>
-                    ))}
+                    {items.map((item: any) => {
+                      let maxScoreVal = Number(item.maxScore);
+                      let displayDesc = item.description;
+                      if (!maxScoreVal && !isNaN(Number(item.description)) && item.description !== "") {
+                        maxScoreVal = Number(item.description);
+                        displayDesc = "";
+                      }
+
+                      return (
+                        <tr
+                          key={item.id}
+                          className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
+                        >
+                          <td className="px-6 py-4 align-top">
+                            <div className="text-sm font-medium text-slate-800 whitespace-pre-wrap leading-relaxed">
+                              {item.criteria}
+                            </div>
+                            {displayDesc && (
+                              <div className="text-sm text-slate-500 mt-2 whitespace-pre-wrap leading-relaxed">
+                                {displayDesc}
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-sm font-semibold text-slate-600 text-center align-top">
+                            {maxScoreVal}
+                          </td>
+                          <td className="px-6 py-4 align-top">
+                            <div className="flex justify-center">
+                              <input
+                                type="number"
+                                min="0"
+                                max={maxScoreVal}
+                                value={scores[item.id] !== undefined ? scores[item.id] : ""}
+                                onChange={(e) =>
+                                  handleScoreChange(item.id, e.target.value, maxScoreVal)
+                                }
+                                className="w-24 text-center px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 text-sm font-medium text-slate-900 transition-shadow"
+                                placeholder="0"
+                              />
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </React.Fragment>
                 ),
               )}
-              <tr className="bg-indigo-50 border-t-2 border-indigo-100">
-                <td colSpan={2} className="p-4 font-bold text-sm text-indigo-900 text-right">
-                  Tổng điểm:
+              <tr className="bg-indigo-50/50 border-t-2 border-indigo-100">
+                <td className="px-6 py-5 font-bold text-sm text-indigo-900 text-right">
+                  Tổng điểm tự đánh giá:
                 </td>
-                <td className="p-4 font-bold text-sm text-indigo-900 text-center">
+                <td className="px-6 py-5 font-bold text-sm text-indigo-900 text-center">
                   {maxTotal}
                 </td>
-                <td className="p-4 font-bold text-lg text-indigo-700 text-center">
+                <td className="px-6 py-5 font-bold text-lg text-indigo-700 text-center">
                   {currentTotal}
                 </td>
               </tr>
