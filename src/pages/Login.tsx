@@ -35,6 +35,7 @@ export const Login: React.FC = () => {
     <div className="min-h-[80vh] flex items-center justify-center">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-100 p-8">
         <div className="text-center mb-8">
+          <img src="/logo.png" alt="Logo" className="w-16 h-16 object-contain mx-auto mb-4" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
           <h1 className="text-2xl font-bold text-slate-900">
             Chào mừng trở lại
           </h1>

@@ -58,6 +58,10 @@ function doPost(e) {
         if (user.role.toLowerCase() !== 'admin') throw new Error("Forbidden");
         result = handleAddUser(payload);
         break;
+      case 'importUsers':
+        if (user.role.toLowerCase() !== 'admin') throw new Error("Forbidden");
+        result = handleImportUsers(payload);
+        break;
       case 'updateUser':
         if (user.role.toLowerCase() !== 'admin') throw new Error("Forbidden");
         result = handleUpdateUser(payload);
@@ -330,6 +334,29 @@ function handleAddUser(payload) {
   ];
   sheet.appendRow(newRow);
   return { message: "Thêm người dùng thành công" };
+}
+
+function handleImportUsers(payload) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('users');
+  const users = payload.users;
+  
+  if (!users || !Array.isArray(users) || users.length === 0) {
+    throw new Error("Dữ liệu không hợp lệ");
+  }
+  
+  const newRows = users.map(u => [
+    Utilities.getUuid(),
+    u.username,
+    u.password,
+    u.role,
+    u.name,
+    u.teamId || ''
+  ]);
+  
+  // Append rows in batch for better performance
+  sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, newRows[0].length).setValues(newRows);
+  
+  return { message: `Đã nhập ${newRows.length} người dùng thành công` };
 }
 
 function handleUpdateUser(payload) {

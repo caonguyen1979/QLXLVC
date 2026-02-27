@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { apiCall } from "../services/api";
 import Swal from "sweetalert2";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, Upload, Download } from "lucide-react";
 import { translateRole } from "../utils/translate";
+import * as XLSX from "xlsx";
 
 export const Admin: React.FC = () => {
   const [users, setUsers] = useState<any[]>([]);
@@ -64,6 +65,86 @@ export const Admin: React.FC = () => {
         ? prev.lockedQuarters.filter(x => x !== q)
         : [...prev.lockedQuarters, q]
     }));
+  };
+
+  const handleImportUsers = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: "binary" });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws);
+
+        if (data.length === 0) {
+          Swal.fire("Lỗi", "File không có dữ liệu", "error");
+          return;
+        }
+
+        // Show loading
+        Swal.fire({
+          title: 'Đang xử lý...',
+          text: 'Vui lòng chờ trong khi import dữ liệu',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+
+        // Map data to expected format
+        const usersToImport = data.map((row: any) => ({
+          username: row['Tên đăng nhập'] || row['username'],
+          password: row['Mật khẩu'] || row['password'],
+          name: row['Họ và tên'] || row['name'],
+          role: row['Vai trò (Teacher/Staff/TeamLeader/Principal/Admin)'] || row['role'],
+          teamId: row['Tổ/Nhóm'] || row['teamId'] || ''
+        })).filter(u => u.username && u.password && u.name && u.role);
+
+        if (usersToImport.length === 0) {
+          Swal.fire("Lỗi", "Dữ liệu không hợp lệ. Vui lòng kiểm tra lại file mẫu.", "error");
+          return;
+        }
+
+        await apiCall("importUsers", { users: usersToImport });
+        
+        Swal.fire("Thành công", `Đã import ${usersToImport.length} người dùng`, "success");
+        fetchUsers();
+      } catch (error: any) {
+        Swal.fire("Lỗi", error.message || "Không thể import dữ liệu", "error");
+      }
+      
+      // Reset input
+      e.target.value = '';
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const handleDownloadTemplate = () => {
+    const templateData = [
+      {
+        'Tên đăng nhập': 'nguyenvana',
+        'Mật khẩu': '123456',
+        'Họ và tên': 'Nguyễn Văn A',
+        'Vai trò (Teacher/Staff/TeamLeader/Principal/Admin)': 'Teacher',
+        'Tổ/Nhóm': 'Toan'
+      },
+      {
+        'Tên đăng nhập': 'tranvanb',
+        'Mật khẩu': '123456',
+        'Họ và tên': 'Trần Văn B',
+        'Vai trò (Teacher/Staff/TeamLeader/Principal/Admin)': 'Staff',
+        'Tổ/Nhóm': 'VP'
+      }
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Template");
+    XLSX.writeFile(wb, "Template_Import_NguoiDung.xlsx");
   };
 
   const handleAddUser = async () => {
@@ -268,13 +349,35 @@ export const Admin: React.FC = () => {
           <h2 className="text-lg font-semibold text-slate-900">
             Quản lý người dùng
           </h2>
-          <button
-            onClick={handleAddUser}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium"
-          >
-            <Plus size={16} />
-            Thêm người dùng
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleDownloadTemplate}
+              className="flex items-center gap-2 px-3 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 text-sm font-medium transition-colors"
+              title="Tải file mẫu"
+            >
+              <Download size={16} />
+              <span className="hidden sm:inline">File mẫu</span>
+            </button>
+            
+            <label className="flex items-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 text-sm font-medium transition-colors cursor-pointer">
+              <Upload size={16} />
+              <span className="hidden sm:inline">Import Excel</span>
+              <input 
+                type="file" 
+                accept=".xlsx, .xls" 
+                className="hidden" 
+                onChange={handleImportUsers}
+              />
+            </label>
+
+            <button
+              onClick={handleAddUser}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium transition-colors"
+            >
+              <Plus size={16} />
+              <span className="hidden sm:inline">Thêm người dùng</span>
+            </button>
+          </div>
         </div>
 
         <div className="overflow-x-auto">

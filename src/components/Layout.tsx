@@ -73,9 +73,12 @@ export const Layout: React.FC = () => {
         )}
       >
         <div className="flex items-center justify-between h-16 px-6 bg-slate-950">
-          <span className="text-lg font-bold tracking-tight">
-            Hệ thống Đánh giá
-          </span>
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+            <span className="text-lg font-bold tracking-tight">
+              Hệ thống Đánh giá
+            </span>
+          </div>
           <button
             onClick={() => setSidebarOpen(false)}
             className="lg:hidden text-slate-400 hover:text-white"
