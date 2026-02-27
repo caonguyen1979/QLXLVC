@@ -15,6 +15,9 @@ import { Users, CheckCircle, TrendingUp } from "lucide-react";
 export const Dashboard: React.FC = () => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [filterTeam, setFilterTeam] = useState("");
+  const [filterName, setFilterName] = useState("");
+  const [filterQuarter, setFilterQuarter] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -41,6 +44,67 @@ export const Dashboard: React.FC = () => {
   if (!data) return <div>Không thể tải dữ liệu</div>;
 
   const colors = ["#4f46e5", "#0ea5e9", "#10b981", "#f59e0b", "#ef4444"];
+
+  const renderTable = (type: string, title: string) => {
+    if (!data.details) return null;
+    
+    const filtered = data.details.filter((d: any) => {
+      if (d.type !== type) return false;
+      if (filterTeam && d.teamId !== filterTeam) return false;
+      if (filterName && !d.name.toLowerCase().includes(filterName.toLowerCase())) return false;
+      if (filterQuarter && d.quarter.toString() !== filterQuarter) return false;
+      return true;
+    });
+
+    if (filtered.length === 0) return null;
+
+    // Extract all unique criteria IDs except TOTAL
+    const criteriaSet = new Set<string>();
+    filtered.forEach((d: any) => {
+      Object.keys(d.scores).forEach(k => {
+        if (k !== 'TOTAL') criteriaSet.add(k);
+      });
+    });
+    const criteriaList = Array.from(criteriaSet).sort();
+
+    return (
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mt-6">
+        <h2 className="text-lg font-semibold text-slate-900 mb-4">{title}</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse whitespace-nowrap">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                <th className="p-3 font-semibold text-sm text-slate-900">Họ và tên</th>
+                <th className="p-3 font-semibold text-sm text-slate-900">Tổ/Nhóm</th>
+                <th className="p-3 font-semibold text-sm text-slate-900">Quý</th>
+                {criteriaList.map(c => (
+                  <th key={c} className="p-3 font-semibold text-sm text-slate-900 text-center">{c}</th>
+                ))}
+                <th className="p-3 font-semibold text-sm text-slate-900 text-center">Tổng điểm</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((row: any, idx: number) => (
+                <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
+                  <td className="p-3 text-sm text-slate-700">{row.name}</td>
+                  <td className="p-3 text-sm text-slate-700">{row.teamId}</td>
+                  <td className="p-3 text-sm text-slate-700">{row.quarter}</td>
+                  {criteriaList.map(c => (
+                    <td key={c} className="p-3 text-sm text-slate-700 text-center">
+                      {row.scores[c]?.tl !== '' && row.scores[c]?.tl !== undefined ? row.scores[c].tl : row.scores[c]?.self || '-'}
+                    </td>
+                  ))}
+                  <td className="p-3 text-sm font-bold text-indigo-600 text-center">
+                    {row.scores['TOTAL']?.tl !== '' && row.scores['TOTAL']?.tl !== undefined ? row.scores['TOTAL'].tl : row.scores['TOTAL']?.self || '-'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -124,7 +188,6 @@ export const Dashboard: React.FC = () => {
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: "#64748b" }}
-                domain={[0, 100]}
               />
               <Tooltip
                 cursor={{ fill: "#f8fafc" }}
@@ -146,6 +209,38 @@ export const Dashboard: React.FC = () => {
           </ResponsiveContainer>
         </div>
       </div>
+
+      {/* Filters */}
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap gap-4 items-center">
+        <input 
+          type="text" 
+          placeholder="Lọc theo tên..." 
+          value={filterName}
+          onChange={e => setFilterName(e.target.value)}
+          className="p-2 border border-slate-300 rounded-lg text-sm"
+        />
+        <input 
+          type="text" 
+          placeholder="Lọc theo tổ..." 
+          value={filterTeam}
+          onChange={e => setFilterTeam(e.target.value)}
+          className="p-2 border border-slate-300 rounded-lg text-sm"
+        />
+        <select 
+          value={filterQuarter}
+          onChange={e => setFilterQuarter(e.target.value)}
+          className="p-2 border border-slate-300 rounded-lg text-sm"
+        >
+          <option value="">Tất cả các Quý</option>
+          <option value="1">Quý 1</option>
+          <option value="2">Quý 2</option>
+          <option value="3">Quý 3</option>
+          <option value="4">Quý 4</option>
+        </select>
+      </div>
+
+      {renderTable('GV', 'Danh sách đánh giá Giáo viên')}
+      {renderTable('NV', 'Danh sách đánh giá Nhân viên')}
     </div>
   );
 };

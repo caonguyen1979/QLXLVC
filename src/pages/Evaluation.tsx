@@ -35,9 +35,21 @@ export const Evaluation: React.FC = () => {
     fetchTemplate();
   }, [user]);
 
-  const handleScoreChange = (id: string, value: string) => {
+  const handleScoreChange = (id: string, value: string, maxScore: number) => {
     const num = parseInt(value, 10);
     if (!isNaN(num)) {
+      if (num > maxScore) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Vượt quá điểm tối đa',
+          text: `Điểm tối đa cho tiêu chí này là ${maxScore}`,
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 3000
+        });
+        return;
+      }
       setScores((prev) => ({ ...prev, [id]: num }));
     } else if (value === "") {
       const newScores = { ...scores };
@@ -163,7 +175,7 @@ export const Evaluation: React.FC = () => {
                         <td className="p-4 text-sm text-slate-700 font-medium align-top">
                           {item.criteria}
                         </td>
-                        <td className="p-4 text-sm text-slate-600 align-top">
+                        <td className="p-4 text-xs text-slate-600 align-top">
                           {item.description}
                         </td>
                         <td className="p-4 text-sm text-slate-500 text-center align-top">
@@ -176,7 +188,7 @@ export const Evaluation: React.FC = () => {
                             max={item.maxScore}
                             value={scores[item.id] || ""}
                             onChange={(e) =>
-                              handleScoreChange(item.id, e.target.value)
+                              handleScoreChange(item.id, e.target.value, Number(item.maxScore))
                             }
                             className="w-full text-center p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 sm:text-sm"
                           />

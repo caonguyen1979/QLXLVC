@@ -70,6 +70,9 @@ function doPost(e) {
         if (user.role.toLowerCase() !== 'admin') throw new Error("Forbidden");
         result = handleUpdateConfig(payload);
         break;
+      case 'getTeamData':
+        result = handleGetTeamData(user, payload);
+        break;
       default:
         throw new Error("Unknown action: " + action);
     }
@@ -120,42 +123,67 @@ function handleGetDashboardData() {
   
   const totalMembers = usersData.length > 1 ? usersData.length - 1 : 0;
   
-  const dataGVSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('DataGV');
-  const dataNVSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('DataNV');
-  
-  let allEvals = [];
-  if (dataGVSheet) {
-    const gvData = dataGVSheet.getDataRange().getValues();
-    allEvals = allEvals.concat(gvData.slice(1));
-  }
-  if (dataNVSheet) {
-    const nvData = dataNVSheet.getDataRange().getValues();
-    allEvals = allEvals.concat(nvData.slice(1));
-  }
-  
-  const submittedUsers = new Set();
-  const teamScores = {};
-  
-  const userToTeam = {};
+  const userMap = {};
   for (let i = 1; i < usersData.length; i++) {
-    userToTeam[usersData[i][0] || usersData[i][1]] = usersData[i][5];
+    const uid = usersData[i][0] || usersData[i][1];
+    userMap[uid] = {
+      name: usersData[i][4],
+      teamId: usersData[i][5],
+      role: usersData[i][3]
+    };
   }
 
-  allEvals.forEach(row => {
+  const details = {};
+  const submittedUsers = new Set();
+  const teamScores = {};
+
+  const processRow = (row, type) => {
     const userId = row[1];
+    const year = row[2];
+    const quarter = row[3];
     const criteriaId = row[4];
     const selfScore = row[5];
     const tlScore = row[6];
     
     submittedUsers.add(userId);
     
+    const key = `${userId}_${year}_${quarter}`;
+    if (!details[key]) {
+      const u = userMap[userId] || {};
+      details[key] = {
+        userId,
+        name: u.name || userId,
+        teamId: u.teamId || 'Unknown',
+        role: u.role || '',
+        year,
+        quarter,
+        type,
+        scores: {}
+      };
+    }
+    
+    details[key].scores[criteriaId] = {
+      self: selfScore,
+      tl: tlScore
+    };
+
     if (criteriaId === 'TOTAL') {
-      const teamId = userToTeam[userId] || 'Unknown';
+      const teamId = userMap[userId]?.teamId || 'Unknown';
       if (!teamScores[teamId]) teamScores[teamId] = [];
       const finalScore = tlScore !== '' ? tlScore : selfScore;
       teamScores[teamId].push(Number(finalScore) || 0);
     }
-  });
+  };
+
+  const dataGVSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('DataGV');
+  if (dataGVSheet) {
+    dataGVSheet.getDataRange().getValues().slice(1).forEach(r => processRow(r, 'GV'));
+  }
+  
+  const dataNVSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('DataNV');
+  if (dataNVSheet) {
+    dataNVSheet.getDataRange().getValues().slice(1).forEach(r => processRow(r, 'NV'));
+  }
   
   const completionRate = totalMembers > 0 ? Math.round((submittedUsers.size / totalMembers) * 100) : 0;
   
@@ -168,7 +196,8 @@ function handleGetDashboardData() {
   return {
     totalMembers,
     completionRate,
-    teamAverages
+    teamAverages,
+    details: Object.values(details)
   };
 }
 
@@ -334,6 +363,60 @@ function handleUpdateConfig(payload) {
   else sheet.appendRow(['ACTIVE_QUARTER', payload.quarter]);
   
   return { message: "Cập nhật cấu hình thành công" };
+}
+
+function handleGetTeamData(user, payload) {
+  const year = payload.year;
+  const quarter = payload.quarter;
+  
+  const usersSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('users');
+  const usersData = usersSheet.getDataRange().getValues();
+  
+  const teamMembers = [];
+  const memberIds = new Set();
+  
+  for (let i = 1; i < usersData.length; i++) {
+    if (usersData[i][5] === user.teamId) {
+      const uid = usersData[i][0] || usersData[i][1];
+      teamMembers.push({
+        id: uid,
+        username: usersData[i][1],
+        role: usersData[i][3],
+        name: usersData[i][4],
+        teamId: usersData[i][5]
+      });
+      memberIds.add(uid);
+    }
+  }
+  
+  const evaluations = {};
+  
+  const processSheet = (sheetName) => {
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(sheetName);
+    if (!sheet) return;
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const uid = row[1];
+      const rYear = row[2];
+      const rQuarter = row[3];
+      
+      if (memberIds.has(uid) && rYear == year && rQuarter == quarter) {
+        if (!evaluations[uid]) evaluations[uid] = {};
+        evaluations[uid][row[4]] = {
+          selfScore: row[5],
+          tlScore: row[6],
+          prScore: row[7],
+          status: row[8]
+        };
+      }
+    }
+  };
+  
+  processSheet('DataGV');
+  processSheet('DataNV');
+  
+  return { teamMembers, evaluations };
 }
 
 // --- Utilities ---

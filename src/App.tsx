@@ -7,6 +7,7 @@ import { Login } from "./pages/Login";
 import { Evaluation } from "./pages/Evaluation";
 import { Admin } from "./pages/Admin";
 import { Unauthorized } from "./pages/Unauthorized";
+import { TeamEvaluation } from "./pages/TeamEvaluation";
 import { useAuthStore } from "./store/authStore";
 
 export default function App() {
@@ -47,10 +48,7 @@ export default function App() {
               <ProtectedRoute allowedRoles={["TeamLeader", "Principal"]} />
             }
           >
-            <Route
-              path="/team"
-              element={<div className="p-6">Đánh giá tổ/nhóm (Sắp ra mắt)</div>}
-            />
+            <Route path="/team" element={<TeamEvaluation />} />
           </Route>
         </Route>
       </Routes>
