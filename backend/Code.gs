@@ -51,8 +51,20 @@ function doPost(e) {
         result = handleSubmitEvaluation(user, payload);
         break;
       case 'getUsers':
-        if (user.role !== 'Admin') throw new Error("Forbidden");
+        if (user.role.toLowerCase() !== 'admin') throw new Error("Forbidden");
         result = handleGetUsers();
+        break;
+      case 'addUser':
+        if (user.role.toLowerCase() !== 'admin') throw new Error("Forbidden");
+        result = handleAddUser(payload);
+        break;
+      case 'updateUser':
+        if (user.role.toLowerCase() !== 'admin') throw new Error("Forbidden");
+        result = handleUpdateUser(payload);
+        break;
+      case 'deleteUser':
+        if (user.role.toLowerCase() !== 'admin') throw new Error("Forbidden");
+        result = handleDeleteUser(payload);
         break;
       default:
         throw new Error("Unknown action: " + action);
@@ -99,15 +111,60 @@ function handleLogin(username, password) {
 }
 
 function handleGetDashboardData() {
-  // Mock implementation for dashboard
+  const usersSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('users');
+  const usersData = usersSheet ? usersSheet.getDataRange().getValues() : [];
+  
+  const totalMembers = usersData.length > 1 ? usersData.length - 1 : 0;
+  
+  const dataGVSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('DataGV');
+  const dataNVSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('DataNV');
+  
+  let allEvals = [];
+  if (dataGVSheet) {
+    const gvData = dataGVSheet.getDataRange().getValues();
+    allEvals = allEvals.concat(gvData.slice(1));
+  }
+  if (dataNVSheet) {
+    const nvData = dataNVSheet.getDataRange().getValues();
+    allEvals = allEvals.concat(nvData.slice(1));
+  }
+  
+  const submittedUsers = new Set();
+  const teamScores = {};
+  
+  const userToTeam = {};
+  for (let i = 1; i < usersData.length; i++) {
+    userToTeam[usersData[i][0] || usersData[i][1]] = usersData[i][5];
+  }
+
+  allEvals.forEach(row => {
+    const userId = row[1];
+    const criteriaId = row[4];
+    const selfScore = row[5];
+    const tlScore = row[6];
+    
+    submittedUsers.add(userId);
+    
+    if (criteriaId === 'TOTAL') {
+      const teamId = userToTeam[userId] || 'Unknown';
+      if (!teamScores[teamId]) teamScores[teamId] = [];
+      const finalScore = tlScore !== '' ? tlScore : selfScore;
+      teamScores[teamId].push(Number(finalScore) || 0);
+    }
+  });
+  
+  const completionRate = totalMembers > 0 ? Math.round((submittedUsers.size / totalMembers) * 100) : 0;
+  
+  const teamAverages = Object.keys(teamScores).map(team => {
+    const scores = teamScores[team];
+    const avg = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+    return { team: team, average: Math.round(avg * 10) / 10 };
+  });
+  
   return {
-    totalMembers: 120,
-    completionRate: 85,
-    teamAverages: [
-      { team: "Math", average: 92 },
-      { team: "Science", average: 88 },
-      { team: "Literature", average: 90 }
-    ]
+    totalMembers,
+    completionRate,
+    teamAverages
   };
 }
 
@@ -201,7 +258,7 @@ function handleGetUsers() {
   const users = [];
   for (let i = 1; i < data.length; i++) {
     users.push({
-      id: data[i][0],
+      id: data[i][0] || data[i][1],
       username: data[i][1],
       role: data[i][3],
       name: data[i][4],
@@ -209,6 +266,48 @@ function handleGetUsers() {
     });
   }
   return users;
+}
+
+function handleAddUser(payload) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('users');
+  const newRow = [
+    Utilities.getUuid(),
+    payload.username,
+    payload.password,
+    payload.role,
+    payload.name,
+    payload.teamId
+  ];
+  sheet.appendRow(newRow);
+  return { message: "Thêm người dùng thành công" };
+}
+
+function handleUpdateUser(payload) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('users');
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === payload.id || data[i][1] === payload.username) {
+      sheet.getRange(i + 1, 2).setValue(payload.username);
+      if (payload.password) sheet.getRange(i + 1, 3).setValue(payload.password);
+      sheet.getRange(i + 1, 4).setValue(payload.role);
+      sheet.getRange(i + 1, 5).setValue(payload.name);
+      sheet.getRange(i + 1, 6).setValue(payload.teamId);
+      return { message: "Cập nhật thành công" };
+    }
+  }
+  throw new Error("Không tìm thấy người dùng");
+}
+
+function handleDeleteUser(payload) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('users');
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === payload.id || data[i][1] === payload.username) {
+      sheet.deleteRow(i + 1);
+      return { message: "Xóa thành công" };
+    }
+  }
+  throw new Error("Không tìm thấy người dùng");
 }
 
 // --- Utilities ---

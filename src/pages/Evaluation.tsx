@@ -40,18 +40,30 @@ export const Evaluation: React.FC = () => {
   const handleSubmit = async () => {
     setSaving(true);
     try {
-      const scoresArray = Object.entries(scores).map(([criteriaId, score]) => ({
-        criteriaId,
-        score,
+      let totalScore = 0;
+      const scoresArray = template.map((item) => {
+        const score = scores[item.id] || 0;
+        totalScore += score;
+        return {
+          criteriaId: item.id,
+          score: score,
+          type: "selfScore",
+        };
+      });
+
+      // Add total score
+      scoresArray.push({
+        criteriaId: "TOTAL",
+        score: totalScore,
         type: "selfScore",
-      }));
+      });
 
       await apiCall("submitEvaluation", {
-        userId: user?.id,
+        userId: user?.id || user?.username,
         year: "2023-2024", // Should come from config
         quarter: 1, // Should come from config
         scores: scoresArray,
-        type: user?.role === "Staff" ? "NV" : "GV",
+        type: user?.role.toLowerCase() === "staff" ? "NV" : "GV",
       });
 
       Swal.fire({
@@ -80,6 +92,10 @@ export const Evaluation: React.FC = () => {
     acc[item.section].push(item);
     return acc;
   }, {});
+
+  // Calculate current total
+  const currentTotal = template.reduce((sum, item) => sum + (scores[item.id] || 0), 0);
+  const maxTotal = template.reduce((sum, item) => sum + (Number(item.maxScore) || 0), 0);
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -160,6 +176,17 @@ export const Evaluation: React.FC = () => {
                   </React.Fragment>
                 ),
               )}
+              <tr className="bg-indigo-50 border-t-2 border-indigo-100">
+                <td colSpan={2} className="p-4 font-bold text-sm text-indigo-900 text-right">
+                  Tổng điểm:
+                </td>
+                <td className="p-4 font-bold text-sm text-indigo-900 text-center">
+                  {maxTotal}
+                </td>
+                <td className="p-4 font-bold text-lg text-indigo-700 text-center">
+                  {currentTotal}
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>

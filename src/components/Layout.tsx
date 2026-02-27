@@ -49,7 +49,9 @@ export const Layout: React.FC = () => {
   const filteredNavItems = navItems.filter(
     (item) =>
       item.public ||
-      (isAuthenticated && user && item.roles?.includes(user.role)),
+      (isAuthenticated &&
+        user &&
+        item.roles?.map((r) => r.toLowerCase()).includes(user.role.toLowerCase())),
   );
 
   return (
