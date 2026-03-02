@@ -40,7 +40,7 @@ export const TeamEvaluation: React.FC = () => {
   const handleSelectUser = async (member: any) => {
     setLoading(true);
     try {
-      const isNV = member.role.toLowerCase() === "staff" || member.teamId === "VP";
+      const isNV = member.role.toLowerCase() === "staff" || member.teamId === "VP" || member.teamId?.toLowerCase() === "văn phòng" || member.teamId?.toLowerCase() === "van phong";
       const type = isNV ? "NV" : "GV";
       const res = await apiCall("getEvaluationTemplate", { type });
       setTemplate(res);
@@ -123,7 +123,7 @@ export const TeamEvaluation: React.FC = () => {
         type: scoreType,
       });
 
-      const isNV = selectedUser.role.toLowerCase() === "staff" || selectedUser.teamId === "VP";
+      const isNV = selectedUser.role.toLowerCase() === "staff" || selectedUser.teamId === "VP" || selectedUser.teamId?.toLowerCase() === "văn phòng" || selectedUser.teamId?.toLowerCase() === "van phong";
       await apiCall("submitEvaluation", {
         userId: selectedUser.id,
         year: config.year,
