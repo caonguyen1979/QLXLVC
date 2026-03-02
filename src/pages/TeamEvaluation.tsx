@@ -13,7 +13,7 @@ export const TeamEvaluation: React.FC = () => {
   const [config, setConfig] = useState({ year: "2023-2024", quarter: "1" });
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [template, setTemplate] = useState<any[]>([]);
-  const [scores, setScores] = useState<Record<string, number>>({});
+  const [scores, setScores] = useState<Record<string, string | number>>({});
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -67,28 +67,38 @@ export const TeamEvaluation: React.FC = () => {
   };
 
   const handleScoreChange = (id: string, value: string, maxScore: number) => {
-    const num = parseInt(value, 10);
-    if (!isNaN(num)) {
-      if (num > maxScore) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Vượt quá điểm tối đa',
-          text: `Điểm tối đa cho tiêu chí này là ${maxScore}`,
-          toast: true,
-          position: 'top-end',
-          showConfirmButton: false,
-          timer: 3000
-        });
-        // Set to max score instead of returning
-        setScores((prev) => ({ ...prev, [id]: maxScore }));
-        return;
-      }
-      setScores((prev) => ({ ...prev, [id]: num }));
-    } else if (value === "") {
+    if (value === "") {
       const newScores = { ...scores };
       delete newScores[id];
       setScores(newScores);
+      return;
     }
+
+    // Normalize comma to dot
+    let normalizedValue = value.replace(/,/g, '.');
+
+    // Allow only numbers and a single dot
+    if (!/^\d*\.?\d*$/.test(normalizedValue)) {
+      return;
+    }
+
+    const num = parseFloat(normalizedValue);
+    
+    if (!isNaN(num) && num > maxScore) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Vượt quá điểm tối đa',
+        text: `Điểm tối đa cho tiêu chí này là ${maxScore}`,
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000
+      });
+      setScores((prev) => ({ ...prev, [id]: maxScore.toString() }));
+      return;
+    }
+
+    setScores((prev) => ({ ...prev, [id]: normalizedValue }));
   };
 
   const handleSubmit = async () => {
@@ -97,7 +107,7 @@ export const TeamEvaluation: React.FC = () => {
       const scoreType = user?.role.toLowerCase() === 'principal' ? "principalScore" : "teamLeaderScore";
       let totalScore = 0;
       const scoresArray = template.map((item) => {
-        const score = scores[item.id] || 0;
+        const score = parseFloat(scores[item.id] as string) || 0;
         totalScore += score;
         return {
           criteriaId: item.id,
@@ -154,7 +164,7 @@ export const TeamEvaluation: React.FC = () => {
       return acc;
     }, {});
 
-    const currentTotal = template.reduce((sum, item) => sum + (scores[item.id] || 0), 0);
+    const currentTotal = template.reduce((sum, item) => sum + (parseFloat(scores[item.id] as string) || 0), 0);
     const maxTotal = template.reduce((sum, item) => {
       let maxScoreVal = Number(item.maxScore);
       if (!maxScoreVal && !isNaN(Number(item.description)) && item.description !== "") {
@@ -233,9 +243,8 @@ export const TeamEvaluation: React.FC = () => {
                           <td className="px-6 py-4 align-top">
                             <div className="flex justify-center">
                               <input
-                                type="number"
-                                min="0"
-                                max={maxScoreVal}
+                                type="text"
+                                inputMode="decimal"
                                 value={scores[item.id] !== undefined ? scores[item.id] : ""}
                                 onChange={(e) => handleScoreChange(item.id, e.target.value, maxScoreVal)}
                                 className="w-24 text-center px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 text-sm font-medium text-slate-900 transition-shadow"

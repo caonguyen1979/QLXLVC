@@ -7,7 +7,7 @@ import { Save } from "lucide-react";
 export const Evaluation: React.FC = () => {
   const { user } = useAuthStore();
   const [template, setTemplate] = useState<any[]>([]);
-  const [scores, setScores] = useState<Record<string, number>>({});
+  const [scores, setScores] = useState<Record<string, string | number>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [tlEvaluated, setTlEvaluated] = useState(false);
@@ -53,28 +53,38 @@ export const Evaluation: React.FC = () => {
   }, [user]);
 
   const handleScoreChange = (id: string, value: string, maxScore: number) => {
-    const num = parseInt(value, 10);
-    if (!isNaN(num)) {
-      if (num > maxScore) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Vượt quá điểm tối đa',
-          text: `Điểm tối đa cho tiêu chí này là ${maxScore}`,
-          toast: true,
-          position: 'top-end',
-          showConfirmButton: false,
-          timer: 3000
-        });
-        // Set to max score instead of returning
-        setScores((prev) => ({ ...prev, [id]: maxScore }));
-        return;
-      }
-      setScores((prev) => ({ ...prev, [id]: num }));
-    } else if (value === "") {
+    if (value === "") {
       const newScores = { ...scores };
       delete newScores[id];
       setScores(newScores);
+      return;
     }
+
+    // Normalize comma to dot
+    let normalizedValue = value.replace(/,/g, '.');
+
+    // Allow only numbers and a single dot
+    if (!/^\d*\.?\d*$/.test(normalizedValue)) {
+      return;
+    }
+
+    const num = parseFloat(normalizedValue);
+    
+    if (!isNaN(num) && num > maxScore) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Vượt quá điểm tối đa',
+        text: `Điểm tối đa cho tiêu chí này là ${maxScore}`,
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000
+      });
+      setScores((prev) => ({ ...prev, [id]: maxScore.toString() }));
+      return;
+    }
+
+    setScores((prev) => ({ ...prev, [id]: normalizedValue }));
   };
 
   const handleSubmit = async () => {
@@ -82,7 +92,7 @@ export const Evaluation: React.FC = () => {
     try {
       let totalScore = 0;
       const scoresArray = template.map((item) => {
-        const score = scores[item.id] || 0;
+        const score = parseFloat(scores[item.id] as string) || 0;
         totalScore += score;
         return {
           criteriaId: item.id,
@@ -135,7 +145,7 @@ export const Evaluation: React.FC = () => {
   }, {});
 
   // Calculate current total
-  const currentTotal = template.reduce((sum, item) => sum + (scores[item.id] || 0), 0);
+  const currentTotal = template.reduce((sum, item) => sum + (parseFloat(scores[item.id] as string) || 0), 0);
   const maxTotal = template.reduce((sum, item) => {
     let maxScoreVal = Number(item.maxScore);
     if (!maxScoreVal && !isNaN(Number(item.description)) && item.description !== "") {
@@ -218,9 +228,8 @@ export const Evaluation: React.FC = () => {
                           <td className="px-6 py-4 align-top">
                             <div className="flex justify-center">
                               <input
-                                type="number"
-                                min="0"
-                                max={maxScoreVal}
+                                type="text"
+                                inputMode="decimal"
                                 value={scores[item.id] !== undefined ? scores[item.id] : ""}
                                 onChange={(e) =>
                                   handleScoreChange(item.id, e.target.value, maxScoreVal)

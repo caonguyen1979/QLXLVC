@@ -10,9 +10,12 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import { Users, CheckCircle, TrendingUp, Printer } from "lucide-react";
+import { Users, CheckCircle, TrendingUp, Printer, Download } from "lucide-react";
+import * as XLSX from 'xlsx';
+import { useAuthStore } from "../store/authStore";
 
 export const Dashboard: React.FC = () => {
+  const { user } = useAuthStore();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [filterTeam, setFilterTeam] = useState("");
@@ -71,6 +74,48 @@ export const Dashboard: React.FC = () => {
   });
 
   const maxAverage = teamAverages.length > 0 ? Math.max(...teamAverages.map(t => t.average)) : 0;
+
+  const handleExportXLSX = () => {
+    if (!filteredDetails || filteredDetails.length === 0) {
+      alert("Không có dữ liệu để xuất");
+      return;
+    }
+
+    const exportData = filteredDetails.map((row: any) => {
+      const exportRow: any = {
+        "Họ và tên": row.name,
+        "Tổ/Nhóm": row.teamId,
+        "Quý": row.quarter,
+        "Vai trò": row.type === 'GV' ? 'Giáo viên' : 'Nhân viên',
+      };
+
+      // Add criteria scores
+      Object.keys(row.scores).forEach(c => {
+        if (c !== 'TOTAL') {
+          const score = row.scores[c];
+          exportRow[c] = score?.pr !== '' && score?.pr !== undefined ? score.pr : (score?.tl !== '' && score?.tl !== undefined ? score.tl : score?.self || '-');
+        }
+      });
+
+      // Add total score
+      const totalScore = row.scores['TOTAL'];
+      exportRow['Tổng điểm'] = totalScore?.pr !== '' && totalScore?.pr !== undefined ? totalScore.pr : (totalScore?.tl !== '' && totalScore?.tl !== undefined ? totalScore.tl : totalScore?.self || '-');
+
+      return exportRow;
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "BaoCaoDanhGia");
+    
+    // Generate file name based on filters
+    let fileName = "BaoCaoDanhGia";
+    if (filterQuarter) fileName += `_Q${filterQuarter}`;
+    if (filterTeam) fileName += `_${filterTeam}`;
+    fileName += ".xlsx";
+
+    XLSX.writeFile(workbook, fileName);
+  };
 
   const renderTable = (type: string, title: string) => {
     const filtered = filteredDetails.filter((d: any) => d.type === type);
@@ -165,13 +210,24 @@ export const Dashboard: React.FC = () => {
             <option value="4">Quý 4</option>
           </select>
         </div>
-        <button 
-          onClick={() => window.print()}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors text-sm font-medium"
-        >
-          <Printer size={16} />
-          In danh sách
-        </button>
+        <div className="flex gap-2">
+          {(user?.role.toLowerCase() === 'principal' || user?.role.toLowerCase() === 'team_leader') && (
+            <button 
+              onClick={handleExportXLSX}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors text-sm font-medium"
+            >
+              <Download size={16} />
+              Xuất Excel
+            </button>
+          )}
+          <button 
+            onClick={() => window.print()}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors text-sm font-medium"
+          >
+            <Printer size={16} />
+            In danh sách
+          </button>
+        </div>
       </div>
 
       {/* Stats Grid */}
