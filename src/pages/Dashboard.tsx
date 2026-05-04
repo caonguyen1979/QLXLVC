@@ -91,7 +91,7 @@ export const Dashboard: React.FC = () => {
 
       // Add criteria scores
       Object.keys(row.scores).forEach(c => {
-        if (c !== 'TOTAL') {
+        if (c !== 'TOTAL' && c !== 'CLASSIFICATION') {
           const score = row.scores[c];
           exportRow[c] = score?.pr !== '' && score?.pr !== undefined ? score.pr : (score?.tl !== '' && score?.tl !== undefined ? score.tl : score?.self || '-');
         }
@@ -100,6 +100,9 @@ export const Dashboard: React.FC = () => {
       // Add total score
       const totalScore = row.scores['TOTAL'];
       exportRow['Tổng điểm'] = totalScore?.pr !== '' && totalScore?.pr !== undefined ? totalScore.pr : (totalScore?.tl !== '' && totalScore?.tl !== undefined ? totalScore.tl : totalScore?.self || '-');
+
+      const classification = row.scores['CLASSIFICATION'];
+      exportRow['Xếp loại'] = classification?.pr || classification?.tl || classification?.self || '-';
 
       return exportRow;
     });
@@ -122,11 +125,11 @@ export const Dashboard: React.FC = () => {
 
     if (filtered.length === 0) return null;
 
-    // Extract all unique criteria IDs except TOTAL
+    // Extract all unique criteria IDs except TOTAL and CLASSIFICATION
     const criteriaSet = new Set<string>();
     filtered.forEach((d: any) => {
       Object.keys(d.scores).forEach(k => {
-        if (k !== 'TOTAL') criteriaSet.add(k);
+        if (k !== 'TOTAL' && k !== 'CLASSIFICATION') criteriaSet.add(k);
       });
     });
     const criteriaList = Array.from(criteriaSet).sort();
@@ -145,6 +148,7 @@ export const Dashboard: React.FC = () => {
                   <th key={c} className="p-3 font-semibold text-sm text-slate-900 text-center">{c}</th>
                 ))}
                 <th className="p-3 font-semibold text-sm text-slate-900 text-center">Tổng điểm</th>
+                <th className="p-3 font-semibold text-sm text-slate-900 text-center border-l border-slate-200">Phân loại</th>
               </tr>
             </thead>
             <tbody>
@@ -160,6 +164,9 @@ export const Dashboard: React.FC = () => {
                   ))}
                   <td className="p-3 text-sm font-bold text-indigo-600 text-center">
                     {row.scores['TOTAL']?.pr !== '' && row.scores['TOTAL']?.pr !== undefined ? row.scores['TOTAL'].pr : (row.scores['TOTAL']?.tl !== '' && row.scores['TOTAL']?.tl !== undefined ? row.scores['TOTAL'].tl : row.scores['TOTAL']?.self || '-')}
+                  </td>
+                  <td className="p-3 text-sm font-bold text-emerald-600 text-center border-l border-slate-200">
+                    {row.scores['CLASSIFICATION']?.pr || row.scores['CLASSIFICATION']?.tl || row.scores['CLASSIFICATION']?.self || '-'}
                   </td>
                 </tr>
               ))}

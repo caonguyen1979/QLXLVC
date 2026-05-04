@@ -108,6 +108,14 @@ export const Evaluation: React.FC = () => {
         type: "selfScore",
       });
 
+      if (scores['CLASSIFICATION']) {
+        scoresArray.push({
+          criteriaId: "CLASSIFICATION",
+          score: scores['CLASSIFICATION'],
+          type: "selfScore",
+        });
+      }
+
       const isNV = user?.role.toLowerCase() === "staff" || user?.teamId === "VP" || user?.teamId?.toLowerCase() === "văn phòng" || user?.teamId?.toLowerCase() === "van phong";
       await apiCall("submitEvaluation", {
         userId: user?.id || user?.username,
@@ -255,6 +263,28 @@ export const Evaluation: React.FC = () => {
                 </td>
                 <td className="px-6 py-5 font-bold text-lg text-indigo-700 text-center">
                   {currentTotal}
+                </td>
+              </tr>
+              <tr className="bg-indigo-50/50 border-t border-indigo-100">
+                <td colSpan={2} className="px-6 py-5 font-bold text-sm text-indigo-900 text-right">
+                  Tự xếp loại:
+                </td>
+                <td className="px-6 py-3 align-middle">
+                  <div className="flex justify-center">
+                    <select
+                      value={(scores['CLASSIFICATION'] as string) || ""}
+                      onChange={(e) =>
+                        setScores((prev) => ({ ...prev, CLASSIFICATION: e.target.value }))
+                      }
+                      disabled={tlEvaluated}
+                      className="w-full text-center px-2 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 text-sm font-medium text-slate-900 transition-shadow disabled:bg-slate-100 disabled:text-slate-500"
+                    >
+                      <option value="">-- Chọn xếp loại --</option>
+                      <option value="HTT NV">Hoàn thành tốt nhiệm vụ (HTT NV)</option>
+                      <option value="HT NV">Hoàn thành nhiệm vụ (HT NV)</option>
+                      <option value="KHT NV">Không hoàn thành nhiệm vụ (KHT NV)</option>
+                    </select>
+                  </div>
                 </td>
               </tr>
             </tbody>
