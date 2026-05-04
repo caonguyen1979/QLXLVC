@@ -10,7 +10,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import { Users, CheckCircle, TrendingUp, Printer, Download } from "lucide-react";
+import { Users, CheckCircle, TrendingUp, Printer, Download, Award, ShieldCheck, ShieldAlert } from "lucide-react";
 import * as XLSX from 'xlsx';
 import { useAuthStore } from "../store/authStore";
 
@@ -21,6 +21,7 @@ export const Dashboard: React.FC = () => {
   const [filterTeam, setFilterTeam] = useState("");
   const [filterName, setFilterName] = useState("");
   const [filterQuarter, setFilterQuarter] = useState("");
+  const [filterClassification, setFilterClassification] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -53,6 +54,13 @@ export const Dashboard: React.FC = () => {
     if (filterTeam && d.teamId !== filterTeam) return false;
     if (filterName && !d.name.toLowerCase().includes(filterName.toLowerCase())) return false;
     if (filterQuarter && d.quarter.toString() !== filterQuarter) return false;
+    
+    if (filterClassification) {
+      const cls = d.scores['CLASSIFICATION'];
+      const finalCls = cls?.pr || cls?.tl || cls?.self || '';
+      if (finalCls !== filterClassification) return false;
+    }
+    
     return true;
   }) : [];
 
@@ -74,6 +82,20 @@ export const Dashboard: React.FC = () => {
   });
 
   const maxAverage = teamAverages.length > 0 ? Math.max(...teamAverages.map(t => t.average)) : 0;
+
+  const classificationStats = {
+    'HTT NV': 0,
+    'HT NV': 0,
+    'KHT NV': 0,
+  };
+
+  filteredDetails.forEach((d: any) => {
+    const cls = d.scores['CLASSIFICATION'];
+    const finalCls = cls?.pr || cls?.tl || cls?.self || '';
+    if (finalCls === 'HTT NV') classificationStats['HTT NV']++;
+    if (finalCls === 'HT NV') classificationStats['HT NV']++;
+    if (finalCls === 'KHT NV') classificationStats['KHT NV']++;
+  });
 
   const handleExportXLSX = () => {
     if (!filteredDetails || filteredDetails.length === 0) {
@@ -216,6 +238,16 @@ export const Dashboard: React.FC = () => {
             <option value="3">Quý 3</option>
             <option value="4">Quý 4</option>
           </select>
+          <select
+            value={filterClassification}
+            onChange={e => setFilterClassification(e.target.value)}
+            className="p-2 border border-slate-300 rounded-lg text-sm"
+          >
+            <option value="">Tất cả mức xếp loại</option>
+            <option value="HTT NV">Hoàn thành tốt nhiệm vụ (HTT NV)</option>
+            <option value="HT NV">Hoàn thành nhiệm vụ (HT NV)</option>
+            <option value="KHT NV">Không hoàn thành nhiệm vụ (KHT NV)</option>
+          </select>
         </div>
         <div className="flex gap-2">
           {(user?.role.toLowerCase() === 'principal' || user?.role.toLowerCase() === 'team_leader') && (
@@ -278,6 +310,39 @@ export const Dashboard: React.FC = () => {
             <p className="text-2xl font-bold text-slate-900">
               {maxAverage}
             </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Classification Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 print:hidden mt-6">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
+          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-lg">
+            <Award size={24} />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-slate-500">Hoàn thành tốt nhiệm vụ</p>
+            <p className="text-2xl font-bold text-slate-900">{classificationStats['HTT NV']}</p>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
+          <div className="p-3 bg-blue-50 text-blue-600 rounded-lg">
+            <ShieldCheck size={24} />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-slate-500">Hoàn thành nhiệm vụ</p>
+            <p className="text-2xl font-bold text-slate-900">{classificationStats['HT NV']}</p>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
+          <div className="p-3 bg-rose-50 text-rose-600 rounded-lg">
+            <ShieldAlert size={24} />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-slate-500">Không hoàn thành nhiệm vụ</p>
+            <p className="text-2xl font-bold text-slate-900">{classificationStats['KHT NV']}</p>
           </div>
         </div>
       </div>
