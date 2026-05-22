@@ -13,6 +13,7 @@ import {
 import { Users, CheckCircle, TrendingUp, Printer, Download, Award, ShieldCheck, ShieldAlert } from "lucide-react";
 import * as XLSX from 'xlsx';
 import { useAuthStore } from "../store/authStore";
+import { clsx } from "clsx";
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuthStore();
@@ -156,42 +157,136 @@ export const Dashboard: React.FC = () => {
     });
     const criteriaList = Array.from(criteriaSet).sort();
 
+    const getCellScore = (scores: any, c: string) => {
+      if (!scores || !scores[c]) return '-';
+      const val = scores[c].pr !== '' && scores[c].pr !== undefined 
+        ? scores[c].pr 
+        : (scores[c].tl !== '' && scores[c].tl !== undefined 
+           ? scores[c].tl 
+           : scores[c].self);
+      return val !== '' && val !== undefined ? val : '-';
+    };
+
+    const getClassification = (scores: any) => {
+      if (!scores || !scores['CLASSIFICATION']) return '-';
+      const cls = scores['CLASSIFICATION'];
+      return cls.pr || cls.tl || cls.self || '-';
+    };
+
     return (
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mt-6 print:shadow-none print:border-none print:p-0">
-        <h2 className="text-lg font-semibold text-slate-900 mb-4">{title}</h2>
-        <div className="overflow-x-auto print:overflow-visible">
+      <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200 mt-6 print:shadow-none print:border-none print:p-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-bold text-slate-900">{title}</h2>
+            <span className="px-2.5 py-0.5 bg-indigo-50 text-indigo-700 text-xs font-semibold rounded-full border border-indigo-100">
+              {filtered.length} thành viên
+            </span>
+          </div>
+        </div>
+
+        {/* Outer scroll container with fixed max height so the scrollbar is always visible under the content */}
+        <div className="overflow-auto max-h-[500px] border border-slate-200 rounded-xl shadow-inner scrollbar-thin relative print:overflow-visible print:max-h-none print:border-none">
           <table className="w-full text-left border-collapse whitespace-nowrap print:whitespace-normal">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="p-3 font-semibold text-sm text-slate-900">Họ và tên</th>
-                <th className="p-3 font-semibold text-sm text-slate-900">Tổ/Nhóm</th>
-                <th className="p-3 font-semibold text-sm text-slate-900">Quý</th>
+            <thead className="sticky top-0 bg-slate-100 z-40 border-b border-slate-200 shadow-[0_1px_0_0_rgba(226,232,240,1)]">
+              {/* First Tier: Categorized Groups */}
+              <tr className="bg-slate-100 font-semibold text-slate-700 text-xs border-b border-slate-200">
+                <th 
+                  colSpan={4} 
+                  className="static md:sticky md:left-0 md:z-50 bg-slate-100 px-3 py-2.5 text-center font-bold text-slate-600 uppercase tracking-wider border-r border-slate-200 min-w-[412px] max-w-[412px]"
+                >
+                  Thông tin chung
+                </th>
+                <th 
+                  colSpan={criteriaList.length} 
+                  className="px-3 py-2.5 text-center font-bold text-slate-600 uppercase tracking-wider border-r border-slate-200"
+                >
+                  Tiêu chí đánh giá
+                </th>
+                <th 
+                  colSpan={2} 
+                  className="static md:sticky md:right-0 md:z-50 bg-slate-100 px-3 py-2.5 text-center font-bold text-slate-600 uppercase tracking-wider border-l border-slate-200 min-w-[206px] max-w-[206px]"
+                >
+                  Kết quả tổng hợp
+                </th>
+              </tr>
+
+              {/* Second Tier: Real Headers */}
+              <tr className="bg-slate-50 text-slate-600 text-xs font-semibold border-b border-slate-200">
+                <th className="static md:sticky md:left-0 md:z-50 bg-slate-50 p-3 text-center font-bold min-w-[48px] max-w-[48px]">STT</th>
+                <th className="static md:sticky md:left-[48px] md:z-50 bg-slate-50 p-3 text-left font-bold min-w-[180px] max-w-[180px]">Họ và tên</th>
+                <th className="static md:sticky md:left-[228px] md:z-50 bg-slate-50 p-3 text-left font-bold min-w-[120px] max-w-[120px]">Tổ/Nhóm</th>
+                <th className="static md:sticky md:left-[348px] md:z-50 bg-slate-50 p-3 text-center font-bold min-w-[64px] max-w-[64px] border-r border-slate-200 md:shadow-[2px_0_5px_rgba(0,0,0,0.05)]">Quý</th>
                 {criteriaList.map(c => (
-                  <th key={c} className="p-3 font-semibold text-sm text-slate-900 text-center">{c}</th>
+                  <th key={c} className="p-3 text-center font-bold min-w-[80px] border-r border-slate-200">{c}</th>
                 ))}
-                <th className="p-3 font-semibold text-sm text-slate-900 text-center">Tổng điểm</th>
-                <th className="p-3 font-semibold text-sm text-slate-900 text-center border-l border-slate-200">Phân loại</th>
+                <th className="static md:sticky md:right-[110px] md:z-50 bg-slate-50 p-3 text-center font-bold min-w-[96px] max-w-[96px] border-l border-slate-200 md:shadow-[-2px_0_5px_rgba(0,0,0,0.05)]">Tổng điểm</th>
+                <th className="static md:sticky md:right-0 md:z-50 bg-slate-50 p-3 text-center font-bold min-w-[110px] max-w-[110px] border-l border-slate-200">Phân loại</th>
               </tr>
             </thead>
-            <tbody>
-              {filtered.map((row: any, idx: number) => (
-                <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="p-3 text-sm text-slate-700">{row.name}</td>
-                  <td className="p-3 text-sm text-slate-700">{row.teamId}</td>
-                  <td className="p-3 text-sm text-slate-700">{row.quarter}</td>
-                  {criteriaList.map(c => (
-                    <td key={c} className="p-3 text-sm text-slate-700 text-center">
-                      {row.scores[c]?.pr !== '' && row.scores[c]?.pr !== undefined ? row.scores[c].pr : (row.scores[c]?.tl !== '' && row.scores[c]?.tl !== undefined ? row.scores[c].tl : row.scores[c]?.self || '-')}
+            <tbody className="divide-y divide-slate-100 bg-white">
+              {filtered.map((row: any, idx: number) => {
+                const finalClassification = getClassification(row.scores);
+                return (
+                  <tr 
+                    key={idx} 
+                    className="group transition-colors hover:bg-indigo-50/20 odd:bg-slate-50/10 hover:odd:bg-indigo-50/20"
+                  >
+                    {/* STT */}
+                    <td className="static md:sticky md:left-0 md:z-10 bg-white group-hover:bg-indigo-50/30 group-odd:bg-slate-50/[0.15] group-hover:group-odd:bg-indigo-50/30 text-center text-slate-500 font-medium text-xs p-3 min-w-[48px] max-w-[48px] border-r border-slate-100 transition-colors">
+                      {idx + 1}
                     </td>
-                  ))}
-                  <td className="p-3 text-sm font-bold text-indigo-600 text-center">
-                    {row.scores['TOTAL']?.pr !== '' && row.scores['TOTAL']?.pr !== undefined ? row.scores['TOTAL'].pr : (row.scores['TOTAL']?.tl !== '' && row.scores['TOTAL']?.tl !== undefined ? row.scores['TOTAL'].tl : row.scores['TOTAL']?.self || '-')}
-                  </td>
-                  <td className="p-3 text-sm font-bold text-emerald-600 text-center border-l border-slate-200">
-                    {row.scores['CLASSIFICATION']?.pr || row.scores['CLASSIFICATION']?.tl || row.scores['CLASSIFICATION']?.self || '-'}
-                  </td>
-                </tr>
-              ))}
+
+                    {/* Họ và tên */}
+                    <td className="static md:sticky md:left-[48px] md:z-10 bg-white group-hover:bg-indigo-50/30 group-odd:bg-slate-100/[0.15] group-hover:group-odd:bg-indigo-50/30 text-sm font-semibold text-slate-900 p-3 min-w-[180px] max-w-[180px] truncate border-r border-slate-100 transition-colors">
+                      {row.name}
+                    </td>
+
+                    {/* Tổ/Nhóm */}
+                    <td className="static md:sticky md:left-[228px] md:z-10 bg-white group-hover:bg-indigo-50/30 group-odd:bg-slate-100/[0.15] group-hover:group-odd:bg-indigo-50/30 text-sm text-slate-600 p-3 min-w-[120px] max-w-[120px] truncate border-r border-slate-100 transition-colors">
+                      {row.teamId}
+                    </td>
+
+                    {/* Quý */}
+                    <td className="static md:sticky md:left-[348px] md:z-10 bg-white group-hover:bg-indigo-50/30 group-odd:bg-slate-100/[0.15] group-hover:group-odd:bg-indigo-50/30 text-sm text-center text-slate-500 p-3 min-w-[64px] max-w-[64px] border-r border-slate-200 md:shadow-[2px_0_5px_rgba(0,0,0,0.05)] transition-colors">
+                      {row.quarter}
+                    </td>
+
+                    {/* Dynamic Criteria */}
+                    {criteriaList.map(c => {
+                      const scoreRaw = getCellScore(row.scores, c);
+                      return (
+                        <td 
+                          key={c} 
+                          className="p-3 text-sm text-slate-700 text-center min-w-[80px] border-r border-slate-100 font-medium"
+                        >
+                          {scoreRaw}
+                        </td>
+                      );
+                    })}
+
+                    {/* Tổng điểm */}
+                    <td className="static md:sticky md:right-[110px] md:z-10 bg-white group-hover:bg-indigo-50/30 group-odd:bg-slate-100/[0.15] group-hover:group-odd:bg-indigo-50/30 text-sm font-bold text-indigo-600 text-center p-3 min-w-[96px] max-w-[96px] border-l border-slate-200 md:shadow-[-2px_0_5px_rgba(0,0,0,0.05)] transition-colors">
+                      {getCellScore(row.scores, 'TOTAL')}
+                    </td>
+
+                    {/* Phân loại badge */}
+                    <td className="static md:sticky md:right-0 md:z-10 bg-white group-hover:bg-indigo-50/30 group-odd:bg-slate-100/[0.15] group-hover:group-odd:bg-indigo-50/30 text-sm font-semibold text-center p-3 min-w-[110px] max-w-[110px] border-l border-slate-200 transition-colors">
+                      <span className={clsx(
+                        "px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide inline-block border",
+                        finalClassification === 'HTT NV'
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          : finalClassification === 'HT NV'
+                          ? "bg-blue-50 text-blue-700 border-blue-200"
+                          : finalClassification === 'KHT NV'
+                          ? "bg-rose-50 text-rose-700 border-rose-200"
+                          : "bg-slate-50 text-slate-600 border-slate-200"
+                      )}>
+                        {finalClassification}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
