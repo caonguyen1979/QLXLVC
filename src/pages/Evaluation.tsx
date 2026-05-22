@@ -12,14 +12,14 @@ export const Evaluation: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [tlEvaluated, setTlEvaluated] = useState(false);
 
-  const [config, setConfig] = useState({ year: "2023-2024", quarter: "1" });
+  const [config, setConfig] = useState({ year: "2025-2026", quarter: "1" });
 
   useEffect(() => {
     const fetchTemplateAndData = async () => {
       try {
         const conf = await apiCall("getConfig");
         setConfig({
-          year: conf.ACTIVE_YEAR || "2023-2024",
+          year: conf.ACTIVE_YEAR || "2025-2026",
           quarter: conf.ACTIVE_QUARTER || "1",
         });
 
@@ -30,7 +30,7 @@ export const Evaluation: React.FC = () => {
           apiCall("getEvaluationTemplate", { type }),
           apiCall("getUserEvaluation", {
             userId: user?.id || user?.username,
-            year: conf.ACTIVE_YEAR || "2023-2024",
+            year: conf.ACTIVE_YEAR || "2025-2026",
             quarter: conf.ACTIVE_QUARTER || "1",
             type
           })

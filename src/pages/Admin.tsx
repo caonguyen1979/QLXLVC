@@ -8,7 +8,7 @@ import * as XLSX from "xlsx";
 export const Admin: React.FC = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
-  const [config, setConfig] = useState({ year: "2023-2024", quarter: "1", lockedQuarters: [] as number[] });
+  const [config, setConfig] = useState({ year: "2025-2026", quarter: "1", lockedQuarters: [] as number[] });
   const [savingConfig, setSavingConfig] = useState(false);
 
   const fetchUsers = async () => {
@@ -32,7 +32,7 @@ export const Admin: React.FC = () => {
       if (res.LOCKED_Q4 === 'true') locked.push(4);
 
       setConfig({
-        year: res.ACTIVE_YEAR || "2023-2024",
+        year: res.ACTIVE_YEAR || "2025-2026",
         quarter: res.ACTIVE_QUARTER || "1",
         lockedQuarters: locked
       });

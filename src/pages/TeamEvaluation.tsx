@@ -10,7 +10,7 @@ export const TeamEvaluation: React.FC = () => {
   const { user } = useAuthStore();
   const [teamData, setTeamData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [config, setConfig] = useState({ year: "2023-2024", quarter: "1" });
+  const [config, setConfig] = useState({ year: "2025-2026", quarter: "1" });
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [template, setTemplate] = useState<any[]>([]);
   const [scores, setScores] = useState<Record<string, string | number>>({});
@@ -21,7 +21,7 @@ export const TeamEvaluation: React.FC = () => {
       try {
         const conf = await apiCall("getConfig");
         const currentConfig = {
-          year: conf.ACTIVE_YEAR || "2023-2024",
+          year: conf.ACTIVE_YEAR || "2025-2026",
           quarter: conf.ACTIVE_QUARTER || "1",
         };
         setConfig(currentConfig);

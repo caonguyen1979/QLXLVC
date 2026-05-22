@@ -111,8 +111,8 @@ const mockApiCall = async (action: string, payload: any) => {
 
     case "getConfig":
       return {
-        ACTIVE_YEAR: "2024-2025",
-        ACTIVE_QUARTER: "1",
+        ACTIVE_YEAR: "2026",
+        ACTIVE_QUARTER: "2",
         Q1_LOCKED: "false",
       };
 

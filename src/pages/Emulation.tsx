@@ -57,13 +57,13 @@ export const Emulation: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"register" | "history" | "approve">("register");
   
   // Configuration
-  const [activeYear, setActiveYear] = useState(2025); // mapped from active school year e.g. 2024-2025 -> 2025
+  const [activeYear, setActiveYear] = useState(2026); // mapped from active school year e.g. 2025-2026 -> 2026
 
   // User State
   const [history, setHistory] = useState<HistoryRecord[]>([]);
   const [registration, setRegistration] = useState<Registration>({
     userId: user?.id || "",
-    year: 2025,
+    year: 2026,
     work_months: 12,
     is_disciplined: false,
     leave_months: 0,
@@ -96,9 +96,15 @@ export const Emulation: React.FC = () => {
     try {
       // 1. Get Config
       const configRes = await apiCall("getConfig");
-      const currentSchoolYear = configRes?.ACTIVE_YEAR || "2024-2025";
-      // Extract numeric year (e.g. 2024-2025 -> 2025)
-      const numericYear = parseInt(currentSchoolYear.split("-")[1]) || 2025;
+      const currentSchoolYear = configRes?.ACTIVE_YEAR !== undefined ? String(configRes.ACTIVE_YEAR) : "2025-2026";
+      // Extract numeric year (e.g. 2025-2026 -> 2026, or 2026 -> 2026)
+      let numericYear = 2026;
+      if (currentSchoolYear.includes("-")) {
+        const parts = currentSchoolYear.split("-");
+        numericYear = parseInt(parts[1]) || parseInt(parts[0]) || 2026;
+      } else {
+        numericYear = parseInt(currentSchoolYear) || 2026;
+      }
       setActiveYear(numericYear);
 
       // Save user ID to local storage as requested
