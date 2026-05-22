@@ -123,6 +123,47 @@ const mockApiCall = async (action: string, payload: any) => {
       return userHistory;
     }
 
+    case "SAVE_THI_DUA_HISTORY": {
+      const historyStr = localStorage.getItem("mock_thi_dua_history") || "[]";
+      const history = JSON.parse(historyStr);
+      
+      const recordId = payload.id || "HIST_" + Math.floor(Math.random() * 100000);
+      const existingIdx = history.findIndex((h: any) => String(h.id) === String(recordId));
+
+      const newRecord = {
+        id: recordId,
+        userId: payload.userId,
+        year: Number(payload.year),
+        job_rating: payload.job_rating,
+        title_achieved: payload.title_achieved,
+        award_achieved: payload.award_achieved
+      };
+
+      if (existingIdx > -1) {
+        history[existingIdx] = newRecord;
+      } else {
+        // Also prevent duplicated years
+        const yearDupIdx = history.findIndex((h: any) => String(h.userId) === String(payload.userId) && Number(h.year) === Number(payload.year));
+        if (yearDupIdx > -1) {
+          history[yearDupIdx] = newRecord;
+        } else {
+          history.push(newRecord);
+        }
+      }
+
+      localStorage.setItem("mock_thi_dua_history", JSON.stringify(history));
+      return { message: "Lưu thành công", id: recordId };
+    }
+
+    case "DELETE_THI_DUA_HISTORY": {
+      const historyStr = localStorage.getItem("mock_thi_dua_history") || "[]";
+      const history = JSON.parse(historyStr);
+      
+      const filtered = history.filter((h: any) => String(h.id) !== String(payload.id));
+      localStorage.setItem("mock_thi_dua_history", JSON.stringify(filtered));
+      return { message: "Xóa thành công" };
+    }
+
     case "GET_THI_DUA_REGISTRATION": {
       const regStr = localStorage.getItem("mock_thi_dua_registration") || "[]";
       const registrations = JSON.parse(regStr);

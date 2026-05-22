@@ -25,7 +25,10 @@ import {
   Filter,
   LayoutDashboard,
   TrendingUp,
-  HelpCircle as QuestionIcon
+  HelpCircle as QuestionIcon,
+  Plus,
+  Trash2,
+  AlertCircle
 } from "lucide-react";
 import {
   BarChart,
@@ -110,6 +113,14 @@ export const Emulation: React.FC = () => {
 
   const [hasConsecutiveCstdcs3, setHasConsecutiveCstdcs3] = useState(false);
   const [hasConsecutiveCstdcs2, setHasConsecutiveCstdcs2] = useState(false);
+
+  // Self-declaration state for past achievements
+  const [isDeclaring, setIsDeclaring] = useState(false);
+  const [declaringYear, setDeclaringYear] = useState<number>(2025);
+  const [declaringJobRating, setDeclaringJobRating] = useState<string>("Tốt");
+  const [declaringTitle, setDeclaringTitle] = useState<string>("Lao động tiên tiến");
+  const [declaringAward, setDeclaringAward] = useState<string>("Giấy khen");
+  const [isSavingHistory, setIsSavingHistory] = useState(false);
 
   // Load user data
   const loadData = async () => {
@@ -232,6 +243,77 @@ export const Emulation: React.FC = () => {
 
     setHasConsecutiveCstdcs3(maxStreak >= 3);
     setHasConsecutiveCstdcs2(maxStreak >= 2);
+  };
+
+  const handleSaveHistoryRecord = async () => {
+    if (!user) return;
+    setIsSavingHistory(true);
+    try {
+      await apiCall("SAVE_THI_DUA_HISTORY", {
+        userId: user.id,
+        year: Number(declaringYear),
+        job_rating: declaringJobRating,
+        title_achieved: declaringTitle,
+        award_achieved: declaringAward
+      });
+      Swal.fire({
+        icon: "success",
+        title: "Đã lưu thành công!",
+        text: `Đã cập nhật dữ liệu tự khai báo cho năm học ${declaringYear - 1}-${declaringYear}`,
+        timer: 1800,
+        showConfirmButton: false
+      });
+      setIsDeclaring(false);
+      // Reload history and recalculate streak
+      const histRes = await apiCall("GET_THI_DUA_HISTORY", { userId: user.id });
+      setHistory(histRes || []);
+      analyzeHistoryStreaks(histRes || []);
+    } catch (err: any) {
+      Swal.fire({
+        icon: "error",
+        title: "Không thể lưu",
+        text: err.message || "Vui lòng kiểm tra lại kết nối hoặc phân quyền"
+      });
+    } finally {
+      setIsSavingHistory(false);
+    }
+  };
+
+  const handleDeleteHistoryRecord = async (id: string | number) => {
+    if (!user) return;
+    const result = await Swal.fire({
+      title: "Xác nhận xóa?",
+      text: "Hành động này sẽ xóa dữ liệu thi đua trong quá khứ được chọn và tính toán lại các tiêu đề đủ điều kiện.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Xác nhận xóa",
+      cancelButtonText: "Quay lại",
+      confirmButtonColor: "#e11d48",
+      cancelButtonColor: "#475569"
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      await apiCall("DELETE_THI_DUA_HISTORY", { id });
+      Swal.fire({
+        icon: "success",
+        title: "Đã xóa!",
+        text: "Dòng lịch sử đã bị loại bỏ.",
+        timer: 1500,
+        showConfirmButton: false
+      });
+      // Reload history and recalculate streak
+      const histRes = await apiCall("GET_THI_DUA_HISTORY", { userId: user.id });
+      setHistory(histRes || []);
+      analyzeHistoryStreaks(histRes || []);
+    } catch (err: any) {
+      Swal.fire({
+        icon: "error",
+        title: "Không thể xóa",
+        text: err.message || "Có lỗi xảy ra trong quá trình thực hiện."
+      });
+    }
   };
 
   // Rule Engine Formulas
@@ -1443,28 +1525,140 @@ export const Emulation: React.FC = () => {
               <h2 className="text-base font-bold text-slate-900">Lịch sử tích lũy danh thi báu viên chức</h2>
               <p className="text-xs text-slate-500 mt-1">Sản phẩm danh hiệu đạt được qua các năm tự động tích hợp từ hồ sơ đã duyệt</p>
             </div>
-            <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 font-extrabold text-xs rounded-full border border-indigo-100">
-              Tổng số đạt được: {history.length}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 font-extrabold text-xs rounded-full border border-indigo-100">
+                Tổng số đạt được: {history.length}
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsDeclaring(!isDeclaring)}
+                className="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs px-3 py-1.5 rounded-lg border-0 cursor-pointer shadow-sm transition-all"
+              >
+                <Plus size={14} />
+                Tự khai báo danh hiệu quá khứ
+              </button>
+            </div>
           </div>
+
+          {/* Past achievements declaration form */}
+          {isDeclaring && (
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-4 animate-fadeIn">
+              <div className="flex items-center gap-2 text-indigo-900">
+                <AlertCircle size={16} className="text-indigo-600" />
+                <h3 className="text-xs font-extrabold uppercase tracking-wider m-0">Tự khai báo danh hiệu điều kiện (Quá khứ)</h3>
+              </div>
+              <p className="text-[11px] text-slate-500 m-0 font-medium">
+                Vui lòng điền đúng thông tin xếp loại viên chức và danh hiệu khen thưởng đạt được trong quá khứ để làm cơ sở tự động xét duyệt điều kiện tích hợp cho các danh hiệu cấp cao năm nay.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                {/* 1. Năm học */}
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-bold text-slate-700">Năm học đạt được</label>
+                  <select
+                    value={declaringYear}
+                    onChange={(e) => setDeclaringYear(Number(e.target.value))}
+                    className="block w-full p-2 text-xs border border-slate-300 rounded-lg font-semibold bg-white"
+                  >
+                    {Array.from({ length: 8 }, (_, i) => activeYear - 1 - i).map((y) => (
+                      <option key={y} value={y}>
+                        Năm học {y - 1}-{y}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* 2. Đánh giá công việc */}
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-bold text-slate-700">Đánh giá công việc</label>
+                  <select
+                    value={declaringJobRating}
+                    onChange={(e) => setDeclaringJobRating(e.target.value)}
+                    className="block w-full p-2 text-xs border border-slate-300 rounded-lg font-semibold bg-white"
+                  >
+                    <option value="Xuất sắc">Hoàn thành xuất sắc nhiệm vụ</option>
+                    <option value="Tốt">Hoàn thành tốt nhiệm vụ</option>
+                    <option value="Hoàn thành">Hoàn thành nhiệm vụ</option>
+                    <option value="Không hoàn thành">Không hoàn thành nhiệm vụ</option>
+                  </select>
+                </div>
+
+                {/* 3. Danh hiệu thi đua */}
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-bold text-slate-700">Danh hiệu thi đua</label>
+                  <select
+                    value={declaringTitle}
+                    onChange={(e) => setDeclaringTitle(e.target.value)}
+                    className="block w-full p-2 text-xs border border-slate-300 rounded-lg font-semibold bg-white"
+                  >
+                    <option value="Chiến sĩ thi đua cơ sở">Chiến sĩ thi đua cơ sở</option>
+                    <option value="Lao động tiên tiến">Lao động tiên tiến</option>
+                    <option value="Chiến sĩ thi đua cấp Bộ, ban, ngành, tỉnh">Chiến sĩ thi đua cấp Bộ/Tỉnh</option>
+                    <option value="Không đăng ký">Không đăng ký danh hiệu</option>
+                  </select>
+                </div>
+
+                {/* 4. Hình thức khen thưởng */}
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-bold text-slate-700">Hình thức khen thưởng</label>
+                  <select
+                    value={declaringAward}
+                    onChange={(e) => setDeclaringAward(e.target.value)}
+                    className="block w-full p-2 text-xs border border-slate-300 rounded-lg font-semibold bg-white"
+                  >
+                    <option value="Giấy khen">Giấy khen</option>
+                    <option value="Bằng khen của Bộ, ban, ngành, tỉnh">Bằng khen của Bộ, ban, ngành, tỉnh</option>
+                    <option value="Không đăng ký">Không đăng ký khen thưởng</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setIsDeclaring(false)}
+                  disabled={isSavingHistory}
+                  className="bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveHistoryRecord}
+                  disabled={isSavingHistory}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-1.5 text-xs font-extrabold transition-all cursor-pointer shadow-sm inline-flex items-center gap-1.5"
+                >
+                  {isSavingHistory ? (
+                    <>
+                      <Clock size={12} className="animate-spin" />
+                      Đang lưu...
+                    </>
+                  ) : (
+                    "Lưu khai báo"
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
 
           {history.length === 0 ? (
             <div className="text-center py-10 text-slate-400 space-y-2">
               <History size={40} className="mx-auto text-slate-300" />
               <p className="font-semibold text-slate-500">Chưa ghi nhận lịch sử thi đua nào.</p>
               <p className="text-xs max-w-sm mx-auto text-slate-400">
-                Sau khi đăng ký thi đua năm nay được phê duyệt hoặc Admin thực hiện nạp hồ sơ, thông tin sẽ hiển thị đầy đủ tại đây.
+                Nhấn button "Tự khai báo danh hiệu quá khứ" ở góc trên hoặc chờ sau khi đăng ký năm học hiện tại được phê duyệt.
               </p>
             </div>
           ) : (
             <div className="overflow-x-auto border border-slate-200 rounded-xl max-h-[450px]">
               <table className="w-full text-left border-collapse table-fixed">
                 <colgroup>
-                  <col style={{ width: '10%' }} />
+                  <col style={{ width: '8%' }} />
                   <col style={{ width: '15%' }} />
                   <col style={{ width: '25%' }} />
-                  <col style={{ width: '25%' }} />
-                  <col style={{ width: '25%' }} />
+                  <col style={{ width: '23%' }} />
+                  <col style={{ width: '21%' }} />
+                  <col style={{ width: '8%' }} />
                 </colgroup>
                 <thead className="bg-[#f8fafc] text-slate-700 text-xs font-bold border-b border-slate-200 sticky top-0 z-10">
                   <tr>
@@ -1473,6 +1667,7 @@ export const Emulation: React.FC = () => {
                     <th className="p-3 text-left">Đánh giá công việc</th>
                     <th className="p-3 text-left">Danh hiệu đạt được</th>
                     <th className="p-3 text-left">Khen thưởng đạt được</th>
+                    <th className="p-3 text-center">Xóa</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-slate-700 text-sm">
@@ -1490,6 +1685,16 @@ export const Emulation: React.FC = () => {
                         <span className="px-2.5 py-1 text-xs font-extrabold bg-[#f0fdf4] border border-emerald-100 text-emerald-800 rounded">
                           {record.award_achieved}
                         </span>
+                      </td>
+                      <td className="p-3 text-center">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteHistoryRecord(record.id)}
+                          className="text-slate-400 hover:text-rose-600 p-1 rounded-lg border-0 bg-transparent cursor-pointer transition-colors inline-flex justify-center items-center"
+                          title="Xóa dòng khai báo này"
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </td>
                     </tr>
                   ))}

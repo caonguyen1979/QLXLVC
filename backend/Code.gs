@@ -83,6 +83,12 @@ function doPost(e) {
       case 'GET_THI_DUA_HISTORY':
         result = handleGetThiDuaHistory(user, payload);
         break;
+      case 'SAVE_THI_DUA_HISTORY':
+        result = handleSaveThiDuaHistory(user, payload);
+        break;
+      case 'DELETE_THI_DUA_HISTORY':
+        result = handleDeleteThiDuaHistory(user, payload);
+        break;
       case 'GET_THI_DUA_REGISTRATION':
         result = handleGetThiDuaRegistration(user, payload);
         break;
@@ -833,3 +839,73 @@ function handleApproveThiDuaRegistration(user, payload) {
   logAudit(user.id, 'APPROVE_THI_DUA_REG', `Duyệt đơn ${payload.registrationId} của ${targetUserId} thành ${payload.status}`);
   return { message: "Duyệt thành công", status: payload.status };
 }
+
+function handleSaveThiDuaHistory(user, payload) {
+  const targetUserId = payload.userId || user.id;
+  const sheet = getOrCreateSheet('thi_dua_history', ['id', 'userId', 'year', 'job_rating', 'title_achieved', 'award_achieved']);
+  const data = sheet.getDataRange().getValues();
+  
+  let existingRowIdx = -1;
+  const recordId = payload.id || ('HIST_' + Utilities.getUuid().substring(0, 8));
+  
+  if (payload.id) {
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][0]) === String(payload.id)) {
+        existingRowIdx = i + 1;
+        break;
+      }
+    }
+  } else {
+    // Check if user already has a record for the same year to prevent duplicated year declarations
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][1]) === String(targetUserId) && Number(data[i][2]) === Number(payload.year)) {
+        existingRowIdx = i + 1;
+        break;
+      }
+    }
+  }
+  
+  const rowValues = [
+    recordId,
+    targetUserId,
+    Number(payload.year),
+    payload.job_rating,
+    payload.title_achieved,
+    payload.award_achieved
+  ];
+  
+  if (existingRowIdx > -1) {
+    sheet.getRange(existingRowIdx, 1, 1, rowValues.length).setValues([rowValues]);
+  } else {
+    sheet.appendRow(rowValues);
+  }
+  
+  logAudit(targetUserId, 'SAVE_THI_DUA_HIST', `Lưu lịch sử thi đua năm ${payload.year}: ${payload.title_achieved}`);
+  return { message: "Lưu thành công", id: recordId };
+}
+
+function handleDeleteThiDuaHistory(user, payload) {
+  const targetUserId = user.id;
+  const sheet = getOrCreateSheet('thi_dua_history', ['id', 'userId', 'year', 'job_rating', 'title_achieved', 'award_achieved']);
+  const data = sheet.getDataRange().getValues();
+  
+  let targetRowIdx = -1;
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(payload.id)) {
+      if (user.role.toLowerCase() !== 'admin' && String(data[i][1]) !== String(targetUserId)) {
+        throw new Error("Không có quyền xóa lịch sử của người khác");
+      }
+      targetRowIdx = i + 1;
+      break;
+    }
+  }
+  
+  if (targetRowIdx > -1) {
+    sheet.deleteRow(targetRowIdx);
+    logAudit(targetUserId, 'DELETE_THI_DUA_HIST', `Xóa dòng lịch sử ID: ${payload.id}`);
+    return { message: "Xóa thành công" };
+  } else {
+    throw new Error("Không tìm thấy dòng xóa");
+  }
+}
+
