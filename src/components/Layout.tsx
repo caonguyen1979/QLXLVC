@@ -26,41 +26,64 @@ export const Layout: React.FC = () => {
     navigate("/login");
   };
 
-  const navItems = [
-    { name: "Bảng điều khiển", path: "/", icon: LayoutDashboard, public: true },
+  const sections = [
     {
-      name: "Trang cá nhân",
-      path: "/evaluation",
-      icon: FileText,
-      roles: ["Teacher", "Staff", "TeamLeader", "Principal"],
+      title: "Đánh giá viên chức",
+      items: [
+        { name: "Dashboard DG", path: "/", icon: LayoutDashboard, public: true },
+        {
+          name: "Tự đánh giá",
+          path: "/evaluation",
+          icon: FileText,
+          roles: ["Teacher", "Staff", "TeamLeader", "Principal"],
+        },
+        {
+          name: "Đánh giá tổ/nhóm",
+          path: "/team",
+          icon: Users,
+          roles: ["TeamLeader", "Principal"],
+        },
+      ],
     },
     {
-      name: "Thi đua Khen thưởng",
-      path: "/emulation",
-      icon: Award,
-      roles: ["Teacher", "Staff", "TeamLeader", "Principal", "Admin"],
+      title: "Thi đua Khen thưởng",
+      items: [
+        {
+          name: "Dashboard TĐKT",
+          path: "/emulation?tab=dashboard",
+          icon: LayoutDashboard,
+          roles: ["Teacher", "Staff", "TeamLeader", "Principal", "Admin"],
+        },
+        {
+          name: "Đăng ký TĐKT",
+          path: "/emulation?tab=register",
+          icon: Award,
+          roles: ["Teacher", "Staff", "TeamLeader", "Principal", "Admin"],
+        },
+      ],
     },
     {
-      name: "Đánh giá tổ/nhóm",
-      path: "/team",
-      icon: Users,
-      roles: ["TeamLeader", "Principal"],
-    },
-    {
-      name: "Quản trị hệ thống",
-      path: "/admin",
-      icon: Settings,
-      roles: ["Admin"],
+      title: "Hệ thống",
+      items: [
+        {
+          name: "Quản trị hệ thống",
+          path: "/admin",
+          icon: Settings,
+          roles: ["Admin"],
+        },
+      ],
     },
   ];
 
-  const filteredNavItems = navItems.filter(
-    (item) =>
-      item.public ||
-      (isAuthenticated &&
-        user &&
-        item.roles?.map((r) => r.toLowerCase()).includes(user.role.toLowerCase())),
-  );
+  const getFilteredItems = (items: any[]) => {
+    return items.filter(
+      (item) =>
+        item.public ||
+        (isAuthenticated &&
+          user &&
+          item.roles?.map((r: string) => r.toLowerCase()).includes(user.role.toLowerCase())),
+    );
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50">
@@ -112,9 +135,9 @@ export const Layout: React.FC = () => {
         </div>
 
         {/* Sidebar Menu */}
-        <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-1">
+        <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
           {isAuthenticated && user && (
-            <div className="flex items-center gap-3 px-2 mb-8">
+            <div className="flex items-center gap-3 px-2 mb-4">
               <UserCircle size={36} className="text-slate-400" />
               <div>
                 <p className="font-medium text-sm">{user.name}</p>
@@ -123,24 +146,45 @@ export const Layout: React.FC = () => {
             </div>
           )}
 
-          {filteredNavItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path;
+          {sections.map((section) => {
+            const filteredItems = getFilteredItems(section.items);
+            if (filteredItems.length === 0) return null;
+
             return (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={() => setSidebarOpen(false)}
-                className={clsx(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-indigo-600 text-white"
-                    : "text-slate-300 hover:bg-slate-800 hover:text-white",
-                )}
-              >
-                <Icon size={18} />
-                {item.name}
-              </Link>
+              <div key={section.title} className="space-y-1.5 pt-2">
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-3 mb-2">
+                  {section.title}
+                </p>
+                {filteredItems.map((item) => {
+                  const Icon = item.icon;
+                  const itemPathname = item.path.split("?")[0];
+                  const itemSearch = item.path.split("?")[1] || "";
+                  
+                  const isPathMatch = location.pathname === itemPathname;
+                  const isSearchMatch = itemSearch 
+                    ? location.search.includes(itemSearch) 
+                    : !location.search || (!location.search.includes("tab=dashboard") && !location.search.includes("tab=register"));
+                  
+                  const isActive = isPathMatch && isSearchMatch;
+
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => setSidebarOpen(false)}
+                      className={clsx(
+                        "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-colors",
+                        isActive
+                          ? "bg-indigo-600 text-white shadow-sm"
+                          : "text-slate-300 hover:bg-slate-800 hover:text-white",
+                      )}
+                    >
+                      <Icon size={16} />
+                      {item.name}
+                    </Link>
+                  );
+                })}
+              </div>
             );
           })}
         </nav>

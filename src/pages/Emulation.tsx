@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import { apiCall } from "../services/api";
 import { clsx } from "clsx";
@@ -21,8 +22,21 @@ import {
   ThumbsUp,
   ThumbsDown,
   Search,
-  Filter
+  Filter,
+  LayoutDashboard,
+  TrendingUp,
+  HelpCircle as QuestionIcon
 } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+} from "recharts";
 
 interface HistoryRecord {
   id: string | number;
@@ -54,7 +68,15 @@ interface Registration {
 
 export const Emulation: React.FC = () => {
   const { user } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<"register" | "history" | "approve">("register");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const rawTab = searchParams.get("tab") || "dashboard";
+  const activeTab = (rawTab === "dashboard" || rawTab === "register" || rawTab === "history" || rawTab === "approve")
+    ? rawTab
+    : "dashboard";
+
+  const setActiveTab = (tab: "dashboard" | "register" | "history" | "approve") => {
+    setSearchParams({ tab });
+  };
   
   // Configuration
   const [activeYear, setActiveYear] = useState(2026); // mapped from active school year e.g. 2025-2026 -> 2026
@@ -434,6 +456,19 @@ export const Emulation: React.FC = () => {
       <div className="border-b border-slate-200">
         <div className="flex gap-1 overflow-x-auto">
           <button
+            onClick={() => setActiveTab("dashboard")}
+            className={clsx(
+              "px-5 py-3 text-sm font-bold border-b-2 transition-all flex items-center gap-2.5 whitespace-nowrap",
+              activeTab === "dashboard"
+                ? "border-indigo-600 text-indigo-600 font-extrabold bg-indigo-50/20"
+                : "border-transparent text-slate-500 hover:text-slate-900 hover:bg-slate-100/50"
+            )}
+          >
+            <LayoutDashboard size={16} />
+            Dashboard TĐKT
+          </button>
+
+          <button
             onClick={() => setActiveTab("register")}
             className={clsx(
               "px-5 py-3 text-sm font-bold border-b-2 transition-all flex items-center gap-2.5 whitespace-nowrap",
@@ -480,6 +515,425 @@ export const Emulation: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Tab 0: Dashboard TĐKT */}
+      {activeTab === "dashboard" && isAdminOrLeader && (
+        <div className="space-y-6">
+          {/* Welcome & Stats Banner */}
+          <div className="bg-gradient-to-r from-indigo-900 to-indigo-950 rounded-2xl p-6 text-white shadow-md border border-indigo-950 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
+            <div className="absolute right-0 bottom-0 top-0 opacity-10 flex items-center pr-10 pointer-events-none">
+              <Award className="w-64 h-64 rotate-12 text-white" />
+            </div>
+            <div className="space-y-2 relative z-10">
+              <div className="inline-flex items-center gap-2 bg-indigo-500/20 border border-indigo-400/20 px-3 py-1 rounded-full text-xs font-bold text-indigo-200">
+                <TrendingUp size={12} />
+                <span>Số liệu tổng hợp thi đua khen thưởng</span>
+              </div>
+              <h2 className="text-xl md:text-2xl font-black tracking-tight text-white m-0">Bảng điều khiển Thi đua Khen thưởng</h2>
+              <p className="text-indigo-200/80 text-sm max-w-xl m-0 leading-relaxed font-semibold">
+                Hệ thống theo dõi các lượt đăng ký thi đua, khen thưởng cá nhân và kết quả xét duyệt năm học {activeYear - 1}-{activeYear}.
+              </p>
+            </div>
+            <div className="relative z-10 flex flex-wrap gap-2">
+              <button 
+                onClick={() => setActiveTab("register")}
+                className="bg-white hover:bg-slate-100 text-indigo-950 px-4 py-2 rounded-xl text-xs font-extrabold shadow-sm transition-all flex items-center gap-2 border-0 cursor-pointer"
+              >
+                <Award size={14} />
+                Đăng ký cá nhân
+              </button>
+              {isAdminOrLeader && (
+                <button 
+                  onClick={() => setActiveTab("approve")}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-extrabold shadow-sm transition-all flex items-center gap-2 border border-indigo-500/50 cursor-pointer"
+                >
+                  <Users size={14} />
+                  Xét duyệt hồ sơ ({allRegistrations.filter(r => r.status === "PENDING").length})
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Quick Metrics Bento Grid */}
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-2">
+              <div className="text-slate-400 font-bold text-xs uppercase tracking-wider">Tổng số đăng ký</div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-black text-slate-900">{allRegistrations.length}</span>
+                <span className="text-xs text-slate-500">hồ sơ</span>
+              </div>
+              <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                <div className="bg-slate-500 h-full rounded-full" style={{ width: "100%" }}></div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-2">
+              <div className="text-amber-500 font-bold text-xs uppercase tracking-wider">Chờ xét duyệt</div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-black text-amber-600">
+                  {allRegistrations.filter(r => r.status === "PENDING").length}
+                </span>
+                <span className="text-xs text-slate-500">
+                  ({allRegistrations.length > 0 ? Math.round((allRegistrations.filter(r => r.status === "PENDING").length / allRegistrations.length) * 100) : 0}%)
+                </span>
+              </div>
+              <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                <div className="bg-amber-500 h-full rounded-full" style={{ width: `${allRegistrations.length > 0 ? (allRegistrations.filter(r => r.status === "PENDING").length / allRegistrations.length) * 100 : 0}%` }}></div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-2">
+              <div className="text-emerald-500 font-bold text-xs uppercase tracking-wider">Đã phê duyệt</div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-black text-emerald-600">
+                  {allRegistrations.filter(r => r.status === "APPROVED").length}
+                </span>
+                <span className="text-xs text-slate-500">
+                  ({allRegistrations.length > 0 ? Math.round((allRegistrations.filter(r => r.status === "APPROVED").length / allRegistrations.length) * 100) : 0}%)
+                </span>
+              </div>
+              <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${allRegistrations.length > 0 ? (allRegistrations.filter(r => r.status === "APPROVED").length / allRegistrations.length) * 100 : 0}%` }}></div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-2">
+              <div className="text-rose-500 font-bold text-xs uppercase tracking-wider">Từ chối</div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-black text-rose-600">
+                  {allRegistrations.filter(r => r.status === "REJECTED").length}
+                </span>
+                <span className="text-xs text-slate-500">
+                  ({allRegistrations.length > 0 ? Math.round((allRegistrations.filter(r => r.status === "REJECTED").length / allRegistrations.length) * 100) : 0}%)
+                </span>
+              </div>
+              <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                <div className="bg-rose-500 h-full rounded-full" style={{ width: `${allRegistrations.length > 0 ? (allRegistrations.filter(r => r.status === "REJECTED").length / allRegistrations.length) * 100 : 0}%` }}></div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-2 col-span-2 lg:col-span-1">
+              <div className="text-slate-500 font-bold text-xs uppercase tracking-wider">Bản nháp</div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-black text-slate-600">
+                  {allRegistrations.filter(r => r.status === "DRAFT").length}
+                </span>
+                <span className="text-xs text-slate-500">
+                  ({allRegistrations.length > 0 ? Math.round((allRegistrations.filter(r => r.status === "DRAFT").length / allRegistrations.length) * 100) : 0}%)
+                </span>
+              </div>
+              <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                <div className="bg-slate-400 h-full rounded-full" style={{ width: `${allRegistrations.length > 0 ? (allRegistrations.filter(r => r.status === "DRAFT").length / allRegistrations.length) * 100 : 0}%` }}></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Visual Charts and Tables */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            {/* Chart 1: Title distribution */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
+              <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3 m-0">Phân bổ Danh hiệu Thi đua Đăng ký</h3>
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={[
+                      {
+                        name: "LĐTT",
+                        value: allRegistrations.filter(r => r.selected_title === "Lao động tiên tiến").length,
+                      },
+                      {
+                        name: "CSTĐ CS",
+                        value: allRegistrations.filter(r => r.selected_title === "Chiến sĩ thi đua cơ sở").length,
+                      },
+                      {
+                        name: "CSTĐ Bộ/Tỉnh",
+                        value: allRegistrations.filter(r => r.selected_title === "Chiến sĩ thi đua cấp Bộ, ban, ngành, tỉnh").length,
+                      },
+                      {
+                        name: "Không ĐK",
+                        value: allRegistrations.filter(r => r.selected_title === "Không đăng ký").length,
+                      },
+                    ]}
+                    margin={{ top: 10, right: 10, left: -20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 11, fontWeight: 'bold' }} stroke="#cbd5e1" />
+                    <YAxis allowDecimals={false} tick={{ fill: '#64748b', fontSize: 11 }} stroke="#cbd5e1" />
+                    <Tooltip cursor={{ fill: 'rgba(99, 102, 241, 0.05)' }} contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                    <Bar dataKey="value" name="Số hiệu đăng ký" radius={[4, 4, 0, 0]}>
+                      <Cell fill="#6366f1" />
+                      <Cell fill="#06b6d4" />
+                      <Cell fill="#10b981" />
+                      <Cell fill="#94a3b8" />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Chart 2: Award distribution */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
+              <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3 m-0">Phân bổ Hình thức Khen thưởng</h3>
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={[
+                      {
+                        name: "Giấy khen",
+                        value: allRegistrations.filter(r => r.selected_award === "Giấy khen").length,
+                      },
+                      {
+                        name: "Bằng khen",
+                        value: allRegistrations.filter(r => r.selected_award === "Bằng khen của Bộ, ban, ngành, tỉnh").length,
+                      },
+                      {
+                        name: "Không ĐK",
+                        value: allRegistrations.filter(r => r.selected_award === "Không đăng ký").length,
+                      },
+                    ]}
+                    margin={{ top: 10, right: 10, left: -20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 11, fontWeight: 'bold' }} stroke="#cbd5e1" />
+                    <YAxis allowDecimals={false} tick={{ fill: '#64748b', fontSize: 11 }} stroke="#cbd5e1" />
+                    <Tooltip cursor={{ fill: 'rgba(99, 102, 241, 0.05)' }} contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                    <Bar dataKey="value" name="Số lượng đăng ký" radius={[4, 4, 0, 0]}>
+                      <Cell fill="#3b82f6" />
+                      <Cell fill="#ec4899" />
+                      <Cell fill="#94a3b8" />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick-action Pending Registrations List */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 m-0">
+                <Clock className="text-amber-500" size={16} />
+                Danh sách hồ sơ chờ duyệt gần đây
+              </h3>
+              <button 
+                onClick={() => setActiveTab("approve")}
+                className="text-indigo-600 hover:text-indigo-700 text-xs font-bold border-0 bg-transparent cursor-pointer"
+              >
+                Xem toàn bộ hồ sơ &rarr;
+              </button>
+            </div>
+
+            {allRegistrations.filter(r => r.status === "PENDING").length === 0 ? (
+              <div className="text-center py-6 text-slate-400 text-xs">Không có hồ sơ nào đang chờ duyệt.</div>
+            ) : (
+              <div className="overflow-x-auto font-sans">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 text-slate-500 font-extrabold uppercase border-b border-slate-100">
+                      <th className="py-2.5 px-3">Họ và Tên</th>
+                      <th className="py-2.5 px-3">Tổ/Phòng</th>
+                      <th className="py-2.5 px-3">Danh hiệu đăng ký</th>
+                      <th className="py-2.5 px-3">Khen thưởng</th>
+                      <th className="py-2.5 px-3">Sáng kiến</th>
+                      <th className="py-2.5 px-3 text-right">Thao tác nhanh</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {allRegistrations
+                      .filter(r => r.status === "PENDING")
+                      .slice(0, 5)
+                      .map((reg, idx) => (
+                        <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50 transition-colors cursor-default">
+                          <td className="py-3 px-3 font-bold text-slate-800">{reg.userName || `Giáo viên ${reg.userId}`}</td>
+                          <td className="py-3 px-3 font-semibold text-slate-500">{reg.userTeam || "Chưa chọn"}</td>
+                          <td className="py-3 px-3"><span className="text-indigo-700 font-bold">{reg.selected_title}</span></td>
+                          <td className="py-3 px-3"><span className="text-rose-600 font-bold">{reg.selected_award}</span></td>
+                          <td className="py-3 px-3">
+                            <div className="flex flex-col gap-0.5 text-[10px]">
+                              {reg.has_initiative && <span className="text-emerald-600 font-bold">✓ Sáng kiến Cơ sở</span>}
+                              {reg.has_province_initiative && <span className="text-rose-600 font-bold">✓ Sáng kiến Cấp Tỉnh</span>}
+                              {!reg.has_initiative && !reg.has_province_initiative && <span className="text-slate-400">Không có</span>}
+                            </div>
+                          </td>
+                          <td className="py-3 px-3 text-right">
+                            <button
+                              onClick={() => {
+                                setActiveTab("approve");
+                                setTimeout(() => setSearchTerm(reg.userName || ""), 100);
+                              }}
+                              className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-black px-3 py-1.5 rounded-md border-0 cursor-pointer text-xs"
+                            >
+                              Xem &amp; Duyệt
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Tab 0b: Individual Teacher Dashboard TĐKT */}
+      {activeTab === "dashboard" && !isAdminOrLeader && (
+        <div className="space-y-6">
+          {/* Welcome & Target Banner */}
+          <div className="bg-gradient-to-r from-slate-900 to-indigo-950 rounded-2xl p-6 text-white shadow-md border border-slate-950 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
+            <div className="absolute right-0 bottom-0 top-0 opacity-10 flex items-center pr-10 pointer-events-none">
+              <Award className="w-64 h-64 rotate-12 text-white" />
+            </div>
+            <div className="space-y-2 relative z-10">
+              <div className="inline-flex items-center gap-2 bg-indigo-500/20 border border-indigo-400/20 px-3 py-1 rounded-full text-xs font-bold text-indigo-200">
+                <TrendingUp size={12} />
+                <span>Năm học hiện tại: {activeYear - 1}-{activeYear}</span>
+              </div>
+              <h2 className="text-xl md:text-2xl font-black tracking-tight text-white m-0">Chào mừng đến với Cổng đăng ký Thi đua</h2>
+              <p className="text-indigo-200/80 text-sm max-w-xl m-0 leading-relaxed font-semibold">
+                Tại giao diện này, bạn có thể hoàn thành việc nộp đơn, cập nhật tiêu chuẩn và theo dõi phê duyệt hồ sơ thi đua khen thưởng của cá nhân.
+              </p>
+            </div>
+            <div className="relative z-10">
+              <button 
+                onClick={() => setActiveTab("register")}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-xs font-extrabold shadow-sm transition-all flex items-center gap-2 border border-indigo-500/50 cursor-pointer animate-pulse"
+              >
+                <Award size={14} />
+                Bắt đầu Đăng ký Thi đua &rarr;
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* Left: Registration Details card */}
+            <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-5 animate-fadeIn">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3 m-0">
+                <CheckCircle className="text-indigo-600" size={16} />
+                Thông tin hồ sơ đăng ký của bạn
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-slate-50/70 rounded-xl p-4 border border-slate-100 space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Danh hiệu đăng ký</span>
+                  <p className="text-base font-black text-slate-800 m-0">{registration.selected_title || "Không đăng ký"}</p>
+                </div>
+                <div className="bg-slate-50/70 rounded-xl p-4 border border-slate-100 space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Hình thức khen thưởng</span>
+                  <p className="text-base font-black text-rose-700 m-0">{registration.selected_award || "Không đăng ký"}</p>
+                </div>
+              </div>
+
+              {/* Status Alert block */}
+              <div className="flex items-center gap-4 p-4 rounded-xl border bg-slate-50 border-slate-200">
+                <div className="flex-shrink-0">
+                  {registration.status === "APPROVED" && <CheckCircle size={32} className="text-emerald-500" />}
+                  {registration.status === "PENDING" && <Clock size={32} className="text-amber-500" />}
+                  {registration.status === "REJECTED" && <XCircle size={32} className="text-rose-500" />}
+                  {registration.status === "DRAFT" && <FileText size={32} className="text-slate-400" />}
+                </div>
+                <div className="flex-grow">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-extrabold text-slate-800 text-sm">Trạng thái hồ sơ:</span>
+                    <span className={clsx(
+                      "px-2 py-0.5 rounded text-[10px] font-black uppercase",
+                      registration.status === "APPROVED" && "bg-emerald-100 text-emerald-800",
+                      registration.status === "PENDING" && "bg-amber-100 text-amber-800",
+                      registration.status === "REJECTED" && "bg-rose-100 text-rose-800",
+                      registration.status === "DRAFT" && "bg-slate-100 text-slate-800"
+                    )}>
+                      {registration.status === "APPROVED" && "Đã phê duyệt"}
+                      {registration.status === "PENDING" && "Chờ xét duyệt"}
+                      {registration.status === "REJECTED" && "Bị từ chối"}
+                      {registration.status === "DRAFT" && "Bản nháp (Chưa gửi)"}
+                    </span>
+                  </div>
+                  <p className="text-slate-500 text-xs mt-1.5 m-0 leading-relaxed font-semibold">
+                    {registration.status === "APPROVED" && "Chúc mừng! Đăng ký thi công của bạn đã được ban thi đua khen thưởng duyệt thông qua."}
+                    {registration.status === "PENDING" && "Hồ sơ của bạn đang được hội đồng nhà trường xét duyệt. Các thao tác chỉnh sửa hiện bị khóa."}
+                    {registration.status === "REJECTED" && "Hồ sơ không được thông qua. Hãy nhấn 'Đăng ký TĐKT' để cập nhật lại các tiêu chuẩn và gửi lại."}
+                    {registration.status === "DRAFT" && "Hồ sơ của bạn hiện đang ở trạng thái bản nháp. Vui lòng hoàn thành các tiêu chuẩn và gửi đi phê duyệt."}
+                  </p>
+                </div>
+              </div>
+
+              {/* Work variables review */}
+              <div className="space-y-2 pt-2">
+                <span className="text-[11px] font-bold text-slate-500">Các thông số kiểm định hiện tại của bạn:</span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="bg-slate-50 px-3 py-2.5 rounded-lg text-center border border-slate-100">
+                    <div className="text-[10px] text-slate-400 font-bold">Tháng công tác</div>
+                    <div className="text-sm font-extrabold text-slate-800 mt-0.5">{registration.work_months} tháng</div>
+                  </div>
+                  <div className="bg-slate-50 px-3 py-2.5 rounded-lg text-center border border-slate-100">
+                    <div className="text-[10px] text-slate-400 font-bold">Tháng nghỉ việc</div>
+                    <div className="text-sm font-extrabold text-slate-800 mt-0.5">{registration.leave_months} tháng</div>
+                  </div>
+                  <div className="bg-slate-50 px-3 py-2.5 rounded-lg text-center border border-slate-100">
+                    <div className="text-[10px] text-slate-400 font-bold">Kỷ luật</div>
+                    <div className={`text-sm font-extrabold mt-0.5 ${registration.is_disciplined ? "text-rose-600" : "text-emerald-600"}`}>
+                      {registration.is_disciplined ? "Có" : "Không"}
+                    </div>
+                  </div>
+                  <div className="bg-slate-50 px-3 py-2.5 rounded-lg text-center border border-slate-100">
+                    <div className="text-[10px] text-slate-400 font-bold">Sáng kiến, Đề tài</div>
+                    <div className={`text-sm font-extrabold mt-0.5 ${registration.has_initiative || registration.has_province_initiative ? "text-emerald-600" : "text-slate-400"}`}>
+                      {registration.has_province_initiative ? "Cấp Tỉnh" : (registration.has_initiative ? "Cơ sở" : "Không")}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Rule check results & Info */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3 m-0">
+                <QuestionIcon className="text-indigo-600" size={16} />
+                Tiêu chuẩn Đăng ký Danh hiệu
+              </h3>
+
+              <div className="space-y-4 text-xs font-semibold text-slate-600">
+                <div className="space-y-2">
+                  <div className="text-indigo-700 font-extrabold flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-indigo-600"></span>
+                    🏆 Lao động tiên tiến
+                  </div>
+                  <ul className="list-disc list-inside space-y-1 pl-1 font-medium text-slate-500">
+                    <li>Thời gian làm việc thực tế &ge; 6 tháng</li>
+                    <li>Không bị kỷ luật khiển trách trở lên</li>
+                    <li>Thời gian nghỉ việc cộng dồn dưới 3 tháng</li>
+                    <li>Xếp loại công việc tối thiểu: "Tốt" trở lên</li>
+                  </ul>
+                </div>
+
+                <div className="space-y-2 border-t border-slate-100 pt-3">
+                  <div className="text-cyan-600 font-extrabold flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-cyan-500"></span>
+                    🎖️ Chiến sĩ thi đua cơ sở
+                  </div>
+                  <ul className="list-disc list-inside space-y-1 pl-1 font-medium text-slate-500">
+                    <li>Đạt danh hiệu "Lao động tiên tiến"</li>
+                    <li>Có sáng kiến cấp cơ sở được Hội đồng duyệt</li>
+                  </ul>
+                </div>
+
+                <div className="space-y-2 border-t border-slate-100 pt-3">
+                  <div className="text-emerald-700 font-extrabold flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+                    🎖️ Chiến sĩ thi đua cấp Bộ/Tỉnh
+                  </div>
+                  <ul className="list-disc list-inside space-y-1 pl-1 font-medium text-slate-500">
+                    <li>Có 3 năm liên tiếp đạt "Chiến sĩ thi đua cơ sở"</li>
+                    <li>Có sáng kiến Cấp Bộ, ban, ngành, Tỉnh được duyệt</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tab 1: Registration Form */}
       {activeTab === "register" && (
