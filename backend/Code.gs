@@ -80,6 +80,21 @@ function doPost(e) {
       case 'getUserEvaluation':
         result = handleGetUserEvaluation(user, payload);
         break;
+      case 'GET_THI_DUA_HISTORY':
+        result = handleGetThiDuaHistory(user, payload);
+        break;
+      case 'GET_THI_DUA_REGISTRATION':
+        result = handleGetThiDuaRegistration(user, payload);
+        break;
+      case 'SAVE_THI_DUA_REGISTRATION':
+        result = handleSaveThiDuaRegistration(user, payload);
+        break;
+      case 'GET_ALL_THI_DUA_REGISTRATIONS':
+        result = handleGetAllThiDuaRegistrations(user, payload);
+        break;
+      case 'APPROVE_THI_DUA_REGISTRATION':
+        result = handleApproveThiDuaRegistration(user, payload);
+        break;
       default:
         throw new Error("Unknown action: " + action);
     }
@@ -563,4 +578,258 @@ function base64DecodeUrl(str) {
 function computeHmacSha256(message, secret) {
   const signature = Utilities.computeHmacSha256Signature(message, secret);
   return Utilities.base64EncodeWebSafe(signature).replace(/=+$/, '');
+}
+
+function getOrCreateSheet(name, headers) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    if (headers && headers.length > 0) {
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    }
+  }
+  return sheet;
+}
+
+function handleGetThiDuaHistory(user, payload) {
+  const targetUserId = payload.userId || user.id;
+  const sheet = getOrCreateSheet('thi_dua_history', ['id', 'userId', 'year', 'job_rating', 'title_achieved', 'award_achieved']);
+  const data = sheet.getDataRange().getValues();
+  const history = [];
+  
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (String(row[1]) === String(targetUserId)) {
+      history.push({
+        id: row[0],
+        userId: row[1],
+        year: Number(row[2]),
+        job_rating: row[3],
+        title_achieved: row[4],
+        award_achieved: row[5]
+      });
+    }
+  }
+  return history;
+}
+
+function handleGetThiDuaRegistration(user, payload) {
+  const targetUserId = payload.userId || user.id;
+  const year = payload.year;
+  const sheet = getOrCreateSheet('thi_dua_registration', [
+    'registrationId', 'userId', 'year', 'work_months', 'is_disciplined', 'leave_months', 
+    'current_job_rating', 'has_initiative', 'has_topic', 'has_province_initiative', 
+    'has_province_topic', 'selected_title', 'selected_award', 'status'
+  ]);
+  const data = sheet.getDataRange().getValues();
+  
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (String(row[1]) === String(targetUserId) && Number(row[2]) === Number(year)) {
+      return {
+        registrationId: row[0],
+        userId: row[1],
+        year: Number(row[2]),
+        work_months: Number(row[3]),
+        is_disciplined: row[4] === true || row[4] === 'true' || row[4] === 'TRUE',
+        leave_months: Number(row[5]),
+        current_job_rating: row[6],
+        has_initiative: row[7] === true || row[7] === 'true' || row[7] === 'TRUE',
+        has_topic: row[8] === true || row[8] === 'true' || row[8] === 'TRUE',
+        has_province_initiative: row[9] === true || row[9] === 'true' || row[9] === 'TRUE',
+        has_province_topic: row[10] === true || row[10] === 'true' || row[10] === 'TRUE',
+        selected_title: row[11],
+        selected_award: row[12],
+        status: row[13]
+      };
+    }
+  }
+  return null;
+}
+
+function handleSaveThiDuaRegistration(user, payload) {
+  const targetUserId = payload.userId || user.id;
+  const year = payload.year;
+  const sheet = getOrCreateSheet('thi_dua_registration', [
+    'registrationId', 'userId', 'year', 'work_months', 'is_disciplined', 'leave_months', 
+    'current_job_rating', 'has_initiative', 'has_topic', 'has_province_initiative', 
+    'has_province_topic', 'selected_title', 'selected_award', 'status'
+  ]);
+  const data = sheet.getDataRange().getValues();
+  
+  let existingRowIdx = -1;
+  let existingStatus = '';
+  
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (String(row[1]) === String(targetUserId) && Number(row[2]) === Number(year)) {
+      existingRowIdx = i + 1;
+      existingStatus = row[13];
+      break;
+    }
+  }
+  
+  if (existingRowIdx > -1 && (existingStatus === 'PENDING' || existingStatus === 'APPROVED')) {
+    throw new Error("Hồ sơ đã gửi hoặc đã duyệt, không thể thay đổi");
+  }
+  
+  const registrationId = existingRowIdx > -1 ? data[existingRowIdx - 1][0] : ('REG_' + Utilities.getUuid().substring(0, 8));
+  
+  const rowValues = [
+    registrationId,
+    targetUserId,
+    year,
+    payload.work_months,
+    payload.is_disciplined,
+    payload.leave_months,
+    payload.current_job_rating,
+    payload.has_initiative,
+    payload.has_topic,
+    payload.has_province_initiative,
+    payload.has_province_topic,
+    payload.selected_title,
+    payload.selected_award,
+    payload.status
+  ];
+  
+  if (existingRowIdx > -1) {
+    sheet.getRange(existingRowIdx, 1, 1, rowValues.length).setValues([rowValues]);
+  } else {
+    sheet.appendRow(rowValues);
+  }
+  
+  logAudit(targetUserId, 'SAVE_THI_DUA_REG', `Lưu đăng ký thi đua năm ${year}: ${payload.status}`);
+  return { message: "Lưu thành công", registrationId };
+}
+
+function handleGetAllThiDuaRegistrations(user, payload) {
+  if (user.role.toLowerCase() !== 'admin' && user.role.toLowerCase() !== 'principal' && user.role.toLowerCase() !== 'teamleader') {
+    throw new Error("Không có quyền truy cập danh sách đăng ký");
+  }
+  
+  const sheet = getOrCreateSheet('thi_dua_registration', [
+    'registrationId', 'userId', 'year', 'work_months', 'is_disciplined', 'leave_months', 
+    'current_job_rating', 'has_initiative', 'has_topic', 'has_province_initiative', 
+    'has_province_topic', 'selected_title', 'selected_award', 'status'
+  ]);
+  const data = sheet.getDataRange().getValues();
+  
+  const usersSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('users');
+  const usersData = usersSheet ? usersSheet.getDataRange().getValues() : [];
+  const userMap = {};
+  for (let i = 1; i < usersData.length; i++) {
+    const uid = usersData[i][0] || usersData[i][1];
+    userMap[uid] = {
+      name: usersData[i][4],
+      teamId: usersData[i][5]
+    };
+  }
+  
+  const list = [];
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const uid = row[1];
+    const uInfo = userMap[uid] || { name: 'Người dùng ' + uid, teamId: 'Lạ' };
+    
+    // Team Leader can only see their team
+    if (user.role.toLowerCase() === 'teamleader' && uInfo.teamId !== user.teamId) {
+      continue;
+    }
+    
+    list.push({
+      registrationId: row[0],
+      userId: uid,
+      userName: uInfo.name,
+      userTeam: uInfo.teamId,
+      year: Number(row[2]),
+      work_months: Number(row[3]),
+      is_disciplined: row[4] === true || row[4] === 'true' || row[4] === 'TRUE',
+      leave_months: Number(row[5]),
+      current_job_rating: row[6],
+      has_initiative: row[7] === true || row[7] === 'true' || row[7] === 'TRUE',
+      has_topic: row[8] === true || row[8] === 'true' || row[8] === 'TRUE',
+      has_province_initiative: row[9] === true || row[9] === 'true' || row[9] === 'TRUE',
+      has_province_topic: row[10] === true || row[10] === 'true' || row[10] === 'TRUE',
+      selected_title: row[11],
+      selected_award: row[12],
+      status: row[13]
+    });
+  }
+  return list;
+}
+
+function handleApproveThiDuaRegistration(user, payload) {
+  if (user.role.toLowerCase() !== 'admin' && user.role.toLowerCase() !== 'principal' && user.role.toLowerCase() !== 'teamleader') {
+    throw new Error("Không có quyền duyệt đăng ký");
+  }
+  
+  const sheet = getOrCreateSheet('thi_dua_registration', [
+    'registrationId', 'userId', 'year', 'work_months', 'is_disciplined', 'leave_months', 
+    'current_job_rating', 'has_initiative', 'has_topic', 'has_province_initiative', 
+    'has_province_topic', 'selected_title', 'selected_award', 'status'
+  ]);
+  const data = sheet.getDataRange().getValues();
+  
+  let rowIdx = -1;
+  let targetUserId = '';
+  let regYear = '';
+  
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(payload.registrationId)) {
+      rowIdx = i + 1;
+      targetUserId = data[i][1];
+      regYear = data[i][2];
+      break;
+    }
+  }
+  
+  if (rowIdx === -1) {
+    throw new Error("Không tìm thấy đơn đăng ký");
+  }
+  
+  sheet.getRange(rowIdx, 14).setValue(payload.status); // set status to APPROVED or REJECTED
+  
+  // If APPROVED, let's also auto-add this to the user's thi_dua_history for extreme convenience!
+  if (payload.status === 'APPROVED') {
+    const historySheet = getOrCreateSheet('thi_dua_history', ['id', 'userId', 'year', 'job_rating', 'title_achieved', 'award_achieved']);
+    const historyData = historySheet.getDataRange().getValues();
+    
+    // Check if record already exists for this user + year in history to prevent duplicates
+    let historyExists = false;
+    for (let j = 1; j < historyData.length; j++) {
+      if (String(historyData[j][1]) === String(targetUserId) && Number(historyData[j][2]) === Number(regYear)) {
+        historyExists = true;
+        // Update history details
+        historySheet.getRange(j + 1, 4).setValue(data[rowIdx - 1][6]); // job_rating
+        historySheet.getRange(j + 1, 5).setValue(data[rowIdx - 1][11]); // title_achieved
+        historySheet.getRange(j + 1, 6).setValue(data[rowIdx - 1][12]); // award_achieved
+        break;
+      }
+    }
+    
+    if (!historyExists) {
+      let nextId = 1;
+      if (historyData.length > 1) {
+        // Find max id
+        let maxId = 0;
+        for (let j = 1; j < historyData.length; j++) {
+          const val = Number(historyData[j][0]);
+          if (!isNaN(val) && val > maxId) maxId = val;
+        }
+        nextId = maxId + 1;
+      }
+      historySheet.appendRow([
+        nextId,
+        targetUserId,
+        regYear,
+        data[rowIdx - 1][6], // job_rating
+        data[rowIdx - 1][11], // title_achieved
+        data[rowIdx - 1][12] // award_achieved
+      ]);
+    }
+  }
+  
+  logAudit(user.id, 'APPROVE_THI_DUA_REG', `Duyệt đơn ${payload.registrationId} của ${targetUserId} thành ${payload.status}`);
+  return { message: "Duyệt thành công", status: payload.status };
 }

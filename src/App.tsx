@@ -5,6 +5,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { Dashboard } from "./pages/Dashboard";
 import { Login } from "./pages/Login";
 import { Evaluation } from "./pages/Evaluation";
+import { Emulation } from "./pages/Emulation";
 import { Admin } from "./pages/Admin";
 import { Unauthorized } from "./pages/Unauthorized";
 import { TeamEvaluation } from "./pages/TeamEvaluation";
@@ -31,11 +32,12 @@ export default function App() {
           <Route
             element={
               <ProtectedRoute
-                allowedRoles={["Teacher", "Staff", "TeamLeader", "Principal"]}
+                allowedRoles={["Teacher", "Staff", "TeamLeader", "Principal", "Admin"]}
               />
             }
           >
             <Route path="/evaluation" element={<Evaluation />} />
+            <Route path="/emulation" element={<Emulation />} />
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={["Admin"]} />}>

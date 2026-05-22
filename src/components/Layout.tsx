@@ -11,6 +11,7 @@ import {
   Menu,
   X,
   UserCircle,
+  Award,
 } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -28,10 +29,16 @@ export const Layout: React.FC = () => {
   const navItems = [
     { name: "Bảng điều khiển", path: "/", icon: LayoutDashboard, public: true },
     {
-      name: "Đánh giá cá nhân",
+      name: "Trang cá nhân",
       path: "/evaluation",
       icon: FileText,
       roles: ["Teacher", "Staff", "TeamLeader", "Principal"],
+    },
+    {
+      name: "Thi đua Khen thưởng",
+      path: "/emulation",
+      icon: Award,
+      roles: ["Teacher", "Staff", "TeamLeader", "Principal", "Admin"],
     },
     {
       name: "Đánh giá tổ/nhóm",
