@@ -185,69 +185,86 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {/* Outer scroll container with fixed max height so the scrollbar is always visible under the content */}
-        <div className="overflow-auto max-h-[500px] border border-slate-200 rounded-xl shadow-inner scrollbar-thin relative print:overflow-visible print:max-h-none print:border-none">
-          <table className="w-full text-left border-collapse whitespace-nowrap print:whitespace-normal">
-            <thead className="sticky top-0 bg-slate-100 z-40 border-b border-slate-200 shadow-[0_1px_0_0_rgba(226,232,240,1)]">
+        <div className="overflow-auto max-h-[550px] border border-slate-200 rounded-xl shadow-sm relative print:overflow-visible print:max-h-none print:border-none scrollbar-thin">
+          <table className="w-full text-left border-collapse table-fixed divide-y divide-slate-200 print:whitespace-normal">
+            <colgroup>
+              <col style={{ width: '48px' }} />
+              <col style={{ width: '180px' }} />
+              <col style={{ width: '120px' }} />
+              <col style={{ width: '64px' }} />
+              {criteriaList.map(c => (
+                <col key={c} style={{ width: '76px' }} />
+              ))}
+              <col style={{ width: '96px' }} />
+              <col style={{ width: '110px' }} />
+            </colgroup>
+            
+            <thead className="sticky top-0 z-40 border-b border-slate-200 print:static">
               {/* First Tier: Categorized Groups */}
-              <tr className="bg-slate-100 font-semibold text-slate-700 text-xs border-b border-slate-200">
+              <tr className="bg-slate-100 font-semibold text-slate-700 text-xs border-b border-slate-200 h-10">
                 <th 
                   colSpan={4} 
-                  className="static md:sticky md:left-0 md:z-50 bg-slate-100 px-3 py-2.5 text-center font-bold text-slate-600 uppercase tracking-wider border-r border-slate-200 min-w-[412px] max-w-[412px]"
+                  className="static md:sticky md:left-0 z-30 bg-[#f1f5f9] px-3 py-2 text-center font-bold text-slate-700 uppercase tracking-wider border-r border-slate-200 md:shadow-[3px_0_6px_rgba(0,0,0,0.06)]"
                 >
                   Thông tin chung
                 </th>
                 <th 
                   colSpan={criteriaList.length} 
-                  className="px-3 py-2.5 text-center font-bold text-slate-600 uppercase tracking-wider border-r border-slate-200"
+                  className="px-3 py-2 text-center font-bold text-slate-600 uppercase tracking-wider border-r border-slate-200 bg-[#f8fafc] z-20"
                 >
                   Tiêu chí đánh giá
                 </th>
                 <th 
                   colSpan={2} 
-                  className="static md:sticky md:right-0 md:z-50 bg-slate-100 px-3 py-2.5 text-center font-bold text-slate-600 uppercase tracking-wider border-l border-slate-200 min-w-[206px] max-w-[206px]"
+                  className="static md:sticky md:right-0 z-30 bg-[#f1f5f9] px-3 py-2 text-center font-bold text-slate-700 uppercase tracking-wider border-l border-slate-200 md:shadow-[-3px_0_6px_rgba(0,0,0,0.06)]"
                 >
                   Kết quả tổng hợp
                 </th>
               </tr>
 
               {/* Second Tier: Real Headers */}
-              <tr className="bg-slate-50 text-slate-600 text-xs font-semibold border-b border-slate-200">
-                <th className="static md:sticky md:left-0 md:z-50 bg-slate-50 p-3 text-center font-bold min-w-[48px] max-w-[48px]">STT</th>
-                <th className="static md:sticky md:left-[48px] md:z-50 bg-slate-50 p-3 text-left font-bold min-w-[180px] max-w-[180px]">Họ và tên</th>
-                <th className="static md:sticky md:left-[228px] md:z-50 bg-slate-50 p-3 text-left font-bold min-w-[120px] max-w-[120px]">Tổ/Nhóm</th>
-                <th className="static md:sticky md:left-[348px] md:z-50 bg-slate-50 p-3 text-center font-bold min-w-[64px] max-w-[64px] border-r border-slate-200 md:shadow-[2px_0_5px_rgba(0,0,0,0.05)]">Quý</th>
+              <tr className="bg-[#f8fafc] text-slate-600 text-xs font-semibold border-b border-slate-200 h-10">
+                <th className="static md:sticky md:left-0 z-30 bg-[#f1f5f9] p-2 text-center font-bold text-slate-700 border-r border-slate-200">STT</th>
+                <th className="static md:sticky md:left-[48px] z-30 bg-[#f1f5f9] p-2 text-left font-bold text-slate-700 border-r border-slate-200 truncate">Họ và tên</th>
+                <th className="static md:sticky md:left-[228px] z-30 bg-[#f1f5f9] p-2 text-left font-bold text-slate-700 border-r border-slate-200 truncate">Tổ/Nhóm</th>
+                <th className="static md:sticky md:left-[348px] z-30 bg-[#f1f5f9] p-2 text-center font-bold text-slate-700 border-r border-slate-200 md:shadow-[3px_0_6px_rgba(0,0,0,0.06)]">Quý</th>
                 {criteriaList.map(c => (
-                  <th key={c} className="p-3 text-center font-bold min-w-[80px] border-r border-slate-200">{c}</th>
+                  <th key={c} className="p-2 text-center font-bold text-slate-600 border-r border-slate-200 bg-[#f8fafc] z-20">{c}</th>
                 ))}
-                <th className="static md:sticky md:right-[110px] md:z-50 bg-slate-50 p-3 text-center font-bold min-w-[96px] max-w-[96px] border-l border-slate-200 md:shadow-[-2px_0_5px_rgba(0,0,0,0.05)]">Tổng điểm</th>
-                <th className="static md:sticky md:right-0 md:z-50 bg-slate-50 p-3 text-center font-bold min-w-[110px] max-w-[110px] border-l border-slate-200">Phân loại</th>
+                <th className="static md:sticky md:right-[110px] z-30 bg-[#f1f5f9] p-2 text-center font-bold text-slate-700 border-l border-slate-200 md:shadow-[-3px_0_6px_rgba(0,0,0,0.06)]">Tổng điểm</th>
+                <th className="static md:sticky md:right-0 z-30 bg-[#f1f5f9] p-2 text-center font-bold text-slate-700 border-l border-slate-200">Phân loại</th>
               </tr>
             </thead>
+            
             <tbody className="divide-y divide-slate-100 bg-white">
               {filtered.map((row: any, idx: number) => {
                 const finalClassification = getClassification(row.scores);
+                const isEven = idx % 2 === 0;
+                const rowBg = isEven ? "bg-white" : "bg-[#f8fafc]";
+                const rowHoverBg = "group-hover:bg-[#ebf4ff]";
+
                 return (
                   <tr 
                     key={idx} 
-                    className="group transition-colors hover:bg-indigo-50/20 odd:bg-slate-50/10 hover:odd:bg-indigo-50/20"
+                    className="group transition-colors border-b border-slate-100"
                   >
                     {/* STT */}
-                    <td className="static md:sticky md:left-0 md:z-10 bg-white group-hover:bg-indigo-50/30 group-odd:bg-slate-50/[0.15] group-hover:group-odd:bg-indigo-50/30 text-center text-slate-500 font-medium text-xs p-3 min-w-[48px] max-w-[48px] border-r border-slate-100 transition-colors">
+                    <td className={`static md:sticky md:left-0 z-10 ${rowBg} ${rowHoverBg} text-center text-slate-500 font-semibold text-xs p-3 border-r border-slate-200 transition-colors`}>
                       {idx + 1}
                     </td>
 
                     {/* Họ và tên */}
-                    <td className="static md:sticky md:left-[48px] md:z-10 bg-white group-hover:bg-indigo-50/30 group-odd:bg-slate-100/[0.15] group-hover:group-odd:bg-indigo-50/30 text-sm font-semibold text-slate-900 p-3 min-w-[180px] max-w-[180px] truncate border-r border-slate-100 transition-colors">
+                    <td className={`static md:sticky md:left-[48px] z-10 ${rowBg} ${rowHoverBg} text-sm font-bold text-slate-900 p-3 border-r border-slate-200 truncate transition-colors`} title={row.name}>
                       {row.name}
                     </td>
 
                     {/* Tổ/Nhóm */}
-                    <td className="static md:sticky md:left-[228px] md:z-10 bg-white group-hover:bg-indigo-50/30 group-odd:bg-slate-100/[0.15] group-hover:group-odd:bg-indigo-50/30 text-sm text-slate-600 p-3 min-w-[120px] max-w-[120px] truncate border-r border-slate-100 transition-colors">
+                    <td className={`static md:sticky md:left-[228px] z-10 ${rowBg} ${rowHoverBg} text-sm text-slate-600 p-3 border-r border-slate-200 truncate transition-colors`} title={row.teamId}>
                       {row.teamId}
                     </td>
 
                     {/* Quý */}
-                    <td className="static md:sticky md:left-[348px] md:z-10 bg-white group-hover:bg-indigo-50/30 group-odd:bg-slate-100/[0.15] group-hover:group-odd:bg-indigo-50/30 text-sm text-center text-slate-500 p-3 min-w-[64px] max-w-[64px] border-r border-slate-200 md:shadow-[2px_0_5px_rgba(0,0,0,0.05)] transition-colors">
+                    <td className={`static md:sticky md:left-[348px] z-10 ${rowBg} ${rowHoverBg} text-sm text-center font-bold text-slate-500 p-3 border-r border-slate-200 md:shadow-[3px_0_6px_rgba(0,0,0,0.06)] transition-colors`}>
                       {row.quarter}
                     </td>
 
@@ -257,7 +274,8 @@ export const Dashboard: React.FC = () => {
                       return (
                         <td 
                           key={c} 
-                          className="p-3 text-sm text-slate-700 text-center min-w-[80px] border-r border-slate-100 font-medium"
+                          className="p-3 text-center border-r border-slate-100 text-slate-700 font-bold min-w-[76px]"
+                          style={{ fontSize: 'clamp(10px, 1.25vw, 13px)' }}
                         >
                           {scoreRaw}
                         </td>
@@ -265,14 +283,17 @@ export const Dashboard: React.FC = () => {
                     })}
 
                     {/* Tổng điểm */}
-                    <td className="static md:sticky md:right-[110px] md:z-10 bg-white group-hover:bg-indigo-50/30 group-odd:bg-slate-100/[0.15] group-hover:group-odd:bg-indigo-50/30 text-sm font-bold text-indigo-600 text-center p-3 min-w-[96px] max-w-[96px] border-l border-slate-200 md:shadow-[-2px_0_5px_rgba(0,0,0,0.05)] transition-colors">
+                    <td 
+                      className={`static md:sticky md:right-[110px] z-10 ${rowBg} ${rowHoverBg} text-center p-3 border-l border-slate-200 md:shadow-[-3px_0_6px_rgba(0,0,0,0.06)] transition-colors font-extrabold text-indigo-700`}
+                      style={{ fontSize: 'clamp(11px, 1.25vw, 14px)' }}
+                    >
                       {getCellScore(row.scores, 'TOTAL')}
                     </td>
 
                     {/* Phân loại badge */}
-                    <td className="static md:sticky md:right-0 md:z-10 bg-white group-hover:bg-indigo-50/30 group-odd:bg-slate-100/[0.15] group-hover:group-odd:bg-indigo-50/30 text-sm font-semibold text-center p-3 min-w-[110px] max-w-[110px] border-l border-slate-200 transition-colors">
+                    <td className={`static md:sticky md:right-0 z-10 ${rowBg} ${rowHoverBg} text-center p-3 border-l border-slate-200 transition-colors`}>
                       <span className={clsx(
-                        "px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide inline-block border",
+                        "px-2.5 py-1 rounded-full text-[10px] font-extrabold tracking-wide inline-block border shadow-sm",
                         finalClassification === 'HTT NV'
                           ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                           : finalClassification === 'HT NV'
