@@ -342,6 +342,145 @@ export const Emulation: React.FC = () => {
     ["Tốt", "Xuất sắc"].includes(registration.current_job_rating) && 
     cstdStreakMet(2);
 
+  const canBangKhenBoGDDT = !registration.is_disciplined && (() => {
+    // Nhánh A: (thi_dua_history năm N-1 đạt "Chiến sĩ thi đua cơ sở") VÀ (Năm nay đạt "Chiến sĩ thi đua cơ sở")
+    const prevYearRecord = history.find(h => h.year === activeYear - 1);
+    const prevYearCstdcs = prevYearRecord ? prevYearRecord.title_achieved === "Chiến sĩ thi đua cơ sở" : false;
+    const branchA = prevYearCstdcs && canChienSiThiDuaCoSo;
+
+    // Nhánh B: (thi_dua_history năm N-1 xếp loại "Xuất sắc") VÀ (Năm nay xếp loại "Xuất sắc") VÀ (Tổng số sáng kiến/đề tài cấp cơ sở được công nhận trong 2 năm >= 2)
+    const prevYearExcellent = prevYearRecord ? prevYearRecord.job_rating === "Xuất sắc" : false;
+    const thisYearExcellent = registration.current_job_rating === "Xuất sắc";
+    
+    const prevReg = allRegistrations.find(r => r.userId === registration.userId && r.year === activeYear - 1);
+    const prevYearInitiatives = prevReg 
+      ? ((prevReg.has_initiative ? 1 : 0) + (prevReg.has_topic ? 1 : 0))
+      : (prevYearCstdcs ? 1 : 0); // fallback heuristic
+    
+    const thisYearInitiatives = (registration.has_initiative ? 1 : 0) + (registration.has_topic ? 1 : 0);
+    const totalInitiatives = prevYearInitiatives + thisYearInitiatives;
+    const branchB = prevYearExcellent && thisYearExcellent && (totalInitiatives >= 2);
+
+    return branchA || branchB;
+  })();
+
+  const canBangKhenThuTuong = (() => {
+    // Điều kiện mốc: Trong lịch sử đã từng được tặng "Bằng khen của Bộ trưởng" hoặc "Bằng khen của Chủ tịch UBND tỉnh"
+    const hasMilestonePM = history.some(h => {
+      const aw = h.award_achieved ? h.award_achieved.toLowerCase() : "";
+      return aw.includes("bộ trưởng") || 
+             aw.includes("ubnd tỉnh") || 
+             aw.includes("bằng khen của bộ");
+    });
+    if (!hasMilestonePM) return false;
+
+    // Điều kiện thời gian: Trong 05 năm liên tục gần nhất:
+    // - Tất cả các năm đều phải xếp loại từ "Tốt" hoặc "Xuất sắc"
+    // - Có ít nhất 03 năm đạt danh hiệu "Chiến sĩ thi đua cơ sở"
+    const yearsToCheck = Array.from({ length: 5 }, (_, i) => activeYear - 1 - i); // [N-1, N-2, N-3, N-4, N-5]
+    let allExist = true;
+    let allGoodOrExcellent = true;
+    let cstdcsCount = 0;
+
+    for (const yr of yearsToCheck) {
+      const records = history.filter(h => h.year === yr);
+      if (records.length === 0) {
+        allExist = false;
+        break;
+      }
+      const hasGoodOrExcellent = records.some(r => ["Tốt", "Xuất sắc"].includes(r.job_rating));
+      if (!hasGoodOrExcellent) {
+        allGoodOrExcellent = false;
+      }
+      if (records.some(r => r.title_achieved === "Chiến sĩ thi đua cơ sở")) {
+        cstdcsCount++;
+      }
+    }
+    return allExist && allGoodOrExcellent && cstdcsCount >= 3;
+  })();
+
+  const canHuanChuongLaoDong3 = (() => {
+    // Điều kiện mốc: Trong lịch sử đã từng được tặng "Bằng khen của Thủ tướng Chính phủ"
+    const hasMilestonePMContract = history.some(h => {
+      const aw = h.award_achieved ? h.award_achieved.toLowerCase() : "";
+      return aw.includes("thủ tướng");
+    });
+    if (!hasMilestonePMContract) return false;
+
+    // Điều kiện thời gian: Trong 05 năm liên tục gần nhất tính từ sau khi nhận Bằng khen Thủ tướng:
+    // - Tất cả các năm đều phải xếp loại từ "Tốt" hoặc "Xuất sắc"
+    // - Có ít nhất 01 năm xếp loại "Xuất sắc"
+    // - Có ít nhất 03 năm đạt danh hiệu "Chiến sĩ thi đua cơ sở"
+    const pmAwards = history.filter(h => {
+      const aw = h.award_achieved ? h.award_achieved.toLowerCase() : "";
+      return aw.includes("thủ tướng");
+    });
+
+    for (const pmAward of pmAwards) {
+      const startYr = pmAward.year + 1;
+      const blockYears = Array.from({ length: 5 }, (_, i) => startYr + i); // [pmYear+1, ... pmYear+5]
+      
+      if (blockYears[4] >= activeYear) continue;
+
+      let blockValid = true;
+      let blockGoodOrExcellent = true;
+      let blockHasExcellent = false;
+      let blockCstdcsCount = 0;
+
+      for (const yr of blockYears) {
+        const records = history.filter(h => h.year === yr);
+        if (records.length === 0) {
+          blockValid = false;
+          break;
+        }
+        if (!records.some(r => ["Tốt", "Xuất sắc"].includes(r.job_rating))) {
+          blockGoodOrExcellent = false;
+        }
+        if (records.some(r => r.job_rating === "Xuất sắc")) {
+          blockHasExcellent = true;
+        }
+        if (records.some(r => r.title_achieved === "Chiến sĩ thi đua cơ sở")) {
+          blockCstdcsCount++;
+        }
+      }
+
+      if (blockValid && blockGoodOrExcellent && blockHasExcellent && blockCstdcsCount >= 3) {
+        return true;
+      }
+    }
+
+    // Fallback block of last 5 years:
+    const yearsToCheck = Array.from({ length: 5 }, (_, i) => activeYear - 1 - i); // [N-1, N-2, N-3, N-4, N-5]
+    let fallbackValid = true;
+    let fallbackGoodOrExcellent = true;
+    let fallbackHasExcellent = false;
+    let fallbackCstdcsCount = 0;
+
+    for (const yr of yearsToCheck) {
+      const records = history.filter(h => h.year === yr);
+      if (records.length === 0) {
+        fallbackValid = false;
+        break;
+      }
+      if (!records.some(r => ["Tốt", "Xuất sắc"].includes(r.job_rating))) {
+        fallbackGoodOrExcellent = false;
+      }
+      if (records.some(r => r.job_rating === "Xuất sắc")) {
+        fallbackHasExcellent = true;
+      }
+      if (records.some(r => r.title_achieved === "Chiến sĩ thi đua cơ sở")) {
+        fallbackCstdcsCount++;
+      }
+    }
+
+    const hasPMAwardBeforeOrAtN5 = pmAwards.some(award => award.year <= activeYear - 5);
+    if (fallbackValid && fallbackGoodOrExcellent && fallbackHasExcellent && fallbackCstdcsCount >= 3 && hasPMAwardBeforeOrAtN5) {
+      return true;
+    }
+
+    return false;
+  })();
+
   function cstdStreakMet(years: number): boolean {
     if (years === 3) return hasConsecutiveCstdcs3;
     if (years === 2) return hasConsecutiveCstdcs2;
@@ -368,6 +507,15 @@ export const Emulation: React.FC = () => {
         updatedTitle = "Không đăng ký";
       }
 
+      if (updatedAward === "Huân chương Lao động hạng Ba" && !canHuanChuongLaoDong3) {
+        updatedAward = canBangKhenThuTuong ? "Bằng khen của Thủ tướng Chính phủ" : (canBangKhenBoGDDT ? "Bằng khen của Bộ trưởng Bộ GD&ĐT" : (canGiayKhen ? "Giấy khen" : "Không đăng ký"));
+      }
+      if (updatedAward === "Bằng khen của Thủ tướng Chính phủ" && !canBangKhenThuTuong) {
+        updatedAward = canBangKhenBoGDDT ? "Bằng khen của Bộ trưởng Bộ GD&ĐT" : (canGiayKhen ? "Giấy khen" : "Không đăng ký");
+      }
+      if (updatedAward === "Bằng khen của Bộ trưởng Bộ GD&ĐT" && !canBangKhenBoGDDT) {
+        updatedAward = canGiayKhen ? "Giấy khen" : "Không đăng ký";
+      }
       if (updatedAward === "Bằng khen của Bộ, ban, ngành, tỉnh" && !canBangKhen) {
         updatedAward = canGiayKhen ? "Giấy khen" : "Không đăng ký";
       }
@@ -393,7 +541,16 @@ export const Emulation: React.FC = () => {
     registration.has_province_initiative,
     registration.has_province_topic,
     hasConsecutiveCstdcs2,
-    hasConsecutiveCstdcs3
+    hasConsecutiveCstdcs3,
+    canChienSiThiDuaCapTinh,
+    canChienSiThiDuaCoSo,
+    canLaoDongTienTien,
+    canBangKhen,
+    canBangKhenBoGDDT,
+    canBangKhenThuTuong,
+    canHuanChuongLaoDong3,
+    canGiayKhen,
+    isMinimumRequirementMet
   ]);
 
   const handleInputChange = (field: keyof Registration, value: any) => {
@@ -1336,6 +1493,57 @@ export const Emulation: React.FC = () => {
                       />
                       <span className="flex-1">Bằng khen của Bộ, ban, ngành, tỉnh</span>
                     </label>
+
+                    <label className={clsx(
+                      "flex items-center gap-2.5 p-2 px-3 border rounded-lg transition-colors text-xs font-bold",
+                      !canBangKhenBoGDDT
+                        ? "opacity-50 cursor-not-allowed bg-slate-50 border-slate-200 text-slate-400"
+                        : "hover:bg-slate-50 border-slate-200 text-slate-700 cursor-pointer"
+                    )}>
+                      <input
+                        type="radio"
+                        disabled={isFormLocked || !canBangKhenBoGDDT}
+                        name="selected_award"
+                        checked={registration.selected_award === "Bằng khen của Bộ trưởng Bộ GD&ĐT"}
+                        onChange={() => handleInputChange("selected_award", "Bằng khen của Bộ trưởng Bộ GD&ĐT")}
+                        className="w-4 h-4 text-indigo-600"
+                      />
+                      <span className="flex-1">Bằng khen của Bộ trưởng Bộ GD&ĐT</span>
+                    </label>
+
+                    <label className={clsx(
+                      "flex items-center gap-2.5 p-2 px-3 border rounded-lg transition-colors text-xs font-bold",
+                      !canBangKhenThuTuong
+                        ? "opacity-50 cursor-not-allowed bg-slate-50 border-slate-200 text-slate-400"
+                        : "hover:bg-slate-50 border-slate-200 text-slate-700 cursor-pointer"
+                    )}>
+                      <input
+                        type="radio"
+                        disabled={isFormLocked || !canBangKhenThuTuong}
+                        name="selected_award"
+                        checked={registration.selected_award === "Bằng khen của Thủ tướng Chính phủ"}
+                        onChange={() => handleInputChange("selected_award", "Bằng khen của Thủ tướng Chính phủ")}
+                        className="w-4 h-4 text-indigo-600"
+                      />
+                      <span className="flex-1">Bằng khen của Thủ tướng Chính phủ</span>
+                    </label>
+
+                    <label className={clsx(
+                      "flex items-center gap-2.5 p-2 px-3 border rounded-lg transition-colors text-xs font-bold",
+                      !canHuanChuongLaoDong3
+                        ? "opacity-50 cursor-not-allowed bg-slate-50 border-slate-200 text-slate-400"
+                        : "hover:bg-slate-50 border-slate-200 text-slate-700 cursor-pointer"
+                    )}>
+                      <input
+                        type="radio"
+                        disabled={isFormLocked || !canHuanChuongLaoDong3}
+                        name="selected_award"
+                        checked={registration.selected_award === "Huân chương Lao động hạng Ba"}
+                        onChange={() => handleInputChange("selected_award", "Huân chương Lao động hạng Ba")}
+                        className="w-4 h-4 text-indigo-600"
+                      />
+                      <span className="flex-1">Huân chương Lao động hạng Ba</span>
+                    </label>
                   </div>
                 </div>
               </div>
@@ -1485,6 +1693,30 @@ export const Emulation: React.FC = () => {
                       </span>
                     </div>
 
+                    <div className="flex items-center justify-between text-xs p-2 rounded bg-white/5 border border-white/10">
+                      <span className="font-semibold text-slate-200">Bằng khen Bộ trưởng Bộ GD&ĐT</span>
+                      <span className={clsx("text-[10px] font-extrabold px-2 py-0.5 rounded shadow-sm", 
+                        canBangKhenBoGDDT ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400")}>
+                        {canBangKhenBoGDDT ? "ĐỦ ĐIỀU KIỆN" : "KHÔNG ĐỦ"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs p-2 rounded bg-white/5 border border-white/10">
+                      <span className="font-semibold text-slate-200">Bằng khen Thủ tướng CP</span>
+                      <span className={clsx("text-[10px] font-extrabold px-2 py-0.5 rounded shadow-sm", 
+                        canBangKhenThuTuong ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400")}>
+                        {canBangKhenThuTuong ? "ĐỦ ĐIỀU KIỆN" : "KHÔNG ĐỦ"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs p-2 rounded bg-white/5 border border-white/10">
+                      <span className="font-semibold text-slate-200">Huân chương Lao động h.Ba</span>
+                      <span className={clsx("text-[10px] font-extrabold px-2 py-0.5 rounded shadow-sm", 
+                        canHuanChuongLaoDong3 ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400")}>
+                        {canHuanChuongLaoDong3 ? "ĐỦ ĐIỀU KIỆN" : "KHÔNG ĐỦ"}
+                      </span>
+                    </div>
+
                   </div>
                 </div>
 
@@ -1509,6 +1741,17 @@ export const Emulation: React.FC = () => {
                 </p>
                 <p>
                   🌟 <strong>Bằng khen cấp Bộ/Tỉnh:</strong> Đánh giá Tốt/Xuất sắc + 2 năm liên tiếp đạt Chiến sĩ thi đua cơ sở.
+                </p>
+                <p>
+                  📕 <strong>Bằng khen Bộ trưởng Bộ GD&ĐT:</strong> Không bị kỷ luật + Thỏa mãn 1 trong 2 nhánh:
+                  <br />• <em>Nhánh A:</em> Năm trước đạt CSTĐCS + Năm nay đạt CSTĐCS.
+                  <br />• <em>Nhánh B:</em> Năm trước Xuất sắc + Năm nay Xuất sắc + Tổng số sáng kiến/đề tài cơ sở của 2 năm &ge; 2.
+                </p>
+                <p>
+                  🎓 <strong>Bằng khen Thủ tướng CP:</strong> Từng nhận Bằng khen Bộ trưởng hoặc Bằng khen Chủ tịch tỉnh + Trong 5 năm gần nhất liên tục đều xếp loại Tốt/Xuất sắc và có ít nhất 03 năm đạt CSTĐCS.
+                </p>
+                <p>
+                  👑 <strong>Huân chương Lao động hạng Ba:</strong> Từng nhận Bằng khen Thủ tướng + Trong 5 năm liên tục gần nhất kể từ sau khi nhận Bằng khen Thủ tướng đều xếp loại Tốt/Xuất sắc, có ít nhất 1 năm Xuất sắc và 3 năm đạt CSTĐCS.
                 </p>
               </div>
             </div>
