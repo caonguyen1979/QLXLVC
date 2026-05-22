@@ -1609,6 +1609,7 @@ export const Emulation: React.FC = () => {
                     <option value="Giấy khen">Giấy khen</option>
                     <option value="Bằng khen của Bộ, ban, ngành, tỉnh">Bằng khen của Bộ, ban, ngành, tỉnh</option>
                     <option value="Không đăng ký">Không đăng ký khen thưởng</option>
+                    <option value="Không">Không</option>
                   </select>
                 </div>
               </div>
