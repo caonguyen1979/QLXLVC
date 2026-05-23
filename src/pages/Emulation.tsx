@@ -370,6 +370,7 @@ export const Emulation: React.FC = () => {
       const aw = h.award_achieved ? h.award_achieved.toLowerCase() : "";
       return aw.includes("bộ trưởng") || 
              aw.includes("ubnd tỉnh") || 
+             aw.includes("tỉnh") ||
              aw.includes("bằng khen của bộ");
     });
     if (!hasMilestonePM) return false;
@@ -403,7 +404,7 @@ export const Emulation: React.FC = () => {
     // Điều kiện mốc: Trong lịch sử đã từng được tặng "Bằng khen của Thủ tướng Chính phủ"
     const hasMilestonePMContract = history.some(h => {
       const aw = h.award_achieved ? h.award_achieved.toLowerCase() : "";
-      return aw.includes("thủ tướng");
+      return aw.includes("thủ tướng") || aw.includes("ttcp");
     });
     if (!hasMilestonePMContract) return false;
 
@@ -413,7 +414,7 @@ export const Emulation: React.FC = () => {
     // - Có ít nhất 03 năm đạt danh hiệu "Chiến sĩ thi đua cơ sở"
     const pmAwards = history.filter(h => {
       const aw = h.award_achieved ? h.award_achieved.toLowerCase() : "";
-      return aw.includes("thủ tướng");
+      return aw.includes("thủ tướng") || aw.includes("ttcp");
     });
 
     for (const pmAward of pmAwards) {
@@ -508,15 +509,27 @@ export const Emulation: React.FC = () => {
       }
 
       if (updatedAward === "Huân chương Lao động hạng Ba" && !canHuanChuongLaoDong3) {
-        updatedAward = canBangKhenThuTuong ? "Bằng khen của Thủ tướng Chính phủ" : (canBangKhenBoGDDT ? "Bằng khen của Bộ trưởng Bộ GD&ĐT" : (canGiayKhen ? "Giấy khen" : "Không đăng ký"));
+        updatedAward = canBangKhenThuTuong 
+          ? "Bằng khen của Thủ tướng Chính phủ" 
+          : (canBangKhenBoGDDT 
+              ? "Bằng khen của Bộ trưởng Bộ GD&ĐT" 
+              : (canBangKhen 
+                  ? "Bằng khen UBND tỉnh" 
+                  : (canGiayKhen ? "Giấy khen" : "Không đăng ký")));
       }
       if (updatedAward === "Bằng khen của Thủ tướng Chính phủ" && !canBangKhenThuTuong) {
-        updatedAward = canBangKhenBoGDDT ? "Bằng khen của Bộ trưởng Bộ GD&ĐT" : (canGiayKhen ? "Giấy khen" : "Không đăng ký");
+        updatedAward = canBangKhenBoGDDT 
+          ? "Bằng khen của Bộ trưởng Bộ GD&ĐT" 
+          : (canBangKhen 
+              ? "Bằng khen UBND tỉnh" 
+              : (canGiayKhen ? "Giấy khen" : "Không đăng ký"));
       }
       if (updatedAward === "Bằng khen của Bộ trưởng Bộ GD&ĐT" && !canBangKhenBoGDDT) {
-        updatedAward = canGiayKhen ? "Giấy khen" : "Không đăng ký";
+        updatedAward = canBangKhen 
+          ? "Bằng khen UBND tỉnh" 
+          : (canGiayKhen ? "Giấy khen" : "Không đăng ký");
       }
-      if (updatedAward === "Bằng khen của Bộ, ban, ngành, tỉnh" && !canBangKhen) {
+      if ((updatedAward === "Bằng khen của Bộ, ban, ngành, tỉnh" || updatedAward === "Bằng khen UBND tỉnh") && !canBangKhen) {
         updatedAward = canGiayKhen ? "Giấy khen" : "Không đăng ký";
       }
       if (updatedAward === "Giấy khen" && !canGiayKhen) {
@@ -924,7 +937,7 @@ export const Emulation: React.FC = () => {
                       },
                       {
                         name: "Bằng khen",
-                        value: allRegistrations.filter(r => r.selected_award === "Bằng khen của Bộ, ban, ngành, tỉnh").length,
+                        value: allRegistrations.filter(r => r.selected_award && r.selected_award.includes("Bằng khen")).length,
                       },
                       {
                         name: "Không ĐK",
@@ -1487,11 +1500,11 @@ export const Emulation: React.FC = () => {
                         type="radio"
                         disabled={isFormLocked || !canBangKhen}
                         name="selected_award"
-                        checked={registration.selected_award === "Bằng khen của Bộ, ban, ngành, tỉnh"}
-                        onChange={() => handleInputChange("selected_award", "Bằng khen của Bộ, ban, ngành, tỉnh")}
+                        checked={registration.selected_award === "Bằng khen của Bộ, ban, ngành, tỉnh" || registration.selected_award === "Bằng khen UBND tỉnh"}
+                        onChange={() => handleInputChange("selected_award", "Bằng khen UBND tỉnh")}
                         className="w-4 h-4 text-indigo-600"
                       />
-                      <span className="flex-1">Bằng khen của Bộ, ban, ngành, tỉnh</span>
+                      <span className="flex-1">Bằng khen UBND tỉnh</span>
                     </label>
 
                     <label className={clsx(
@@ -1686,7 +1699,7 @@ export const Emulation: React.FC = () => {
                     </div>
 
                     <div className="flex items-center justify-between text-xs p-2 rounded bg-white/5 border border-white/10">
-                      <span className="font-semibold text-slate-200">Bằng khen của Bộ/Tỉnh</span>
+                      <span className="font-semibold text-slate-200">Bằng khen UBND tỉnh</span>
                       <span className={clsx("text-[10px] font-extrabold px-2 py-0.5 rounded shadow-sm", 
                         canBangKhen ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400")}>
                         {canBangKhen ? "ĐỦ ĐIỀU KIỆN" : "KHÔNG ĐỦ"}
@@ -1740,7 +1753,7 @@ export const Emulation: React.FC = () => {
                   🏆 <strong>CSTĐ cấp Bộ/Tỉnh:</strong> 3 năm liên tục đạt Chiến sĩ thi đua cơ sở + (Có sáng kiến/đề tài cấp Bộ/Tỉnh).
                 </p>
                 <p>
-                  🌟 <strong>Bằng khen cấp Bộ/Tỉnh:</strong> Đánh giá Tốt/Xuất sắc + 2 năm liên tiếp đạt Chiến sĩ thi đua cơ sở.
+                  🌟 <strong>Bằng khen UBND tỉnh:</strong> Đánh giá Tốt/Xuất sắc + 2 năm liên tiếp đạt Chiến sĩ thi đua cơ sở.
                 </p>
                 <p>
                   📕 <strong>Bằng khen Bộ trưởng Bộ GD&ĐT:</strong> Không bị kỷ luật + Thỏa mãn 1 trong 2 nhánh:
@@ -1850,8 +1863,9 @@ export const Emulation: React.FC = () => {
                     className="block w-full p-2 text-xs border border-slate-300 rounded-lg font-semibold bg-white"
                   >
                     <option value="Giấy khen">Giấy khen</option>
-                    <option value="Bằng khen của Bộ, ban, ngành, tỉnh">Bằng khen của Bộ, ban, ngành, tỉnh</option>
-                    <option value="Không đăng ký">Không đăng ký khen thưởng</option>
+                    <option value="Bằng khen UBND tỉnh">Bằng khen UBND tỉnh</option>
+                    <option value="Bằng khen của Bộ trưởng Bộ GD&ĐT">Bằng khen của Bộ trưởng Bộ GD&ĐT</option>
+                    <option value="Bằng khen của Thủ tướng Chính phủ">Bằng khen của TTCP</option>
                     <option value="Không">Không</option>
                   </select>
                 </div>
