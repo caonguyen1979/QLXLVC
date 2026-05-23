@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import { translateRole } from "../utils/translate";
+import { apiCall } from "../services/api";
 import {
   LayoutDashboard,
   FileText,
@@ -12,6 +13,7 @@ import {
   X,
   UserCircle,
   Award,
+  Key,
 } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -21,9 +23,52 @@ export const Layout: React.FC = () => {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Change Password States
+  const [showPwdModal, setShowPwdModal] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+  const [loading, setLoading] = useState(false);
+
   const handleLogout = () => {
     logout();
     navigate("/login");
+  };
+
+  const handleChangePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg("");
+    setSuccessMsg("");
+
+    if (!newPassword) {
+      setErrorMsg("Vui lòng nhập mật khẩu mới");
+      return;
+    }
+    if (newPassword.length < 4) {
+      setErrorMsg("Mật khẩu phải từ 4 ký tự trở lên");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setErrorMsg("Mật khẩu xác nhận không khớp");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await apiCall("changePassword", { newPassword });
+      setSuccessMsg("Đổi mật khẩu thành công!");
+      setNewPassword("");
+      setConfirmPassword("");
+      setTimeout(() => {
+        setShowPwdModal(false);
+        setSuccessMsg("");
+      }, 1500);
+    } catch (err: any) {
+      setErrorMsg(err.message || "Có lỗi xảy ra khi đổi mật khẩu");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const sections = [
@@ -190,7 +235,24 @@ export const Layout: React.FC = () => {
         </nav>
 
         {/* Sidebar Footer */}
-        <div className="flex-shrink-0 p-4 border-t border-slate-800">
+        <div className="flex-shrink-0 p-4 border-t border-slate-800 space-y-1">
+          {isAuthenticated && (
+            <button
+              onClick={() => {
+                setErrorMsg("");
+                setSuccessMsg("");
+                setNewPassword("");
+                setConfirmPassword("");
+                setShowPwdModal(true);
+                setSidebarOpen(false); // Close mobile sidebar if open
+              }}
+              className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+            >
+              <Key size={18} />
+              Đổi mật khẩu
+            </button>
+          )}
+
           {isAuthenticated ? (
             <button
               onClick={handleLogout}
@@ -217,6 +279,88 @@ export const Layout: React.FC = () => {
           <Outlet />
         </div>
       </main>
+
+      {/* Change Password Modal */}
+      {showPwdModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-[2px] z-[3000] flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl border border-slate-100 w-full max-w-md overflow-hidden animate-in fade-in duration-200">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-5 py-4 bg-slate-50 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Key className="text-indigo-600 w-5 h-5" />
+                <h3 className="font-bold text-slate-950 text-base">Đổi mật khẩu</h3>
+              </div>
+              <button
+                onClick={() => setShowPwdModal(false)}
+                className="text-slate-400 hover:text-slate-500 rounded p-1 hover:bg-slate-100 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form onSubmit={handleChangePasswordSubmit} className="p-5 space-y-4">
+              {errorMsg && (
+                <div className="p-3 text-xs font-semibold bg-rose-50 text-rose-600 border border-rose-100 rounded-lg">
+                  ⚠️ {errorMsg}
+                </div>
+              )}
+              {successMsg && (
+                <div className="p-3 text-xs font-semibold bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-lg">
+                  🎉 {successMsg}
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Mật khẩu mới
+                </label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Nhập mật khẩu mới"
+                  disabled={loading}
+                  className="w-full text-sm border border-slate-200 rounded-lg p-2.5 outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition-all font-medium text-slate-800"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Xác nhận mật khẩu mới
+                </label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Nhập lại mật khẩu để xác nhận"
+                  disabled={loading}
+                  className="w-full text-sm border border-slate-200 rounded-lg p-2.5 outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition-all font-medium text-slate-800"
+                />
+              </div>
+
+              {/* Modal Actions */}
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowPwdModal(false)}
+                  disabled={loading}
+                  className="px-4 py-2 text-xs font-bold text-slate-500 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg hover:shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {loading ? "Đang xử lý..." : "Xác nhận"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -237,6 +237,13 @@ const mockApiCall = async (action: string, payload: any) => {
       throw new Error("Không tìm thấy đơn đăng ký để duyệt");
     }
 
+    case "changePassword": {
+      if (!payload.newPassword) {
+        throw new Error("Mật khẩu mới không được để trống");
+      }
+      return { message: "Đổi mật khẩu thành công" };
+    }
+
     default:
       return { message: "Mock success" };
   }

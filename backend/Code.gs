@@ -101,6 +101,9 @@ function doPost(e) {
       case 'APPROVE_THI_DUA_REGISTRATION':
         result = handleApproveThiDuaRegistration(user, payload);
         break;
+      case 'changePassword':
+        result = handleChangePassword(user, payload);
+        break;
       default:
         throw new Error("Unknown action: " + action);
     }
@@ -394,6 +397,25 @@ function handleUpdateUser(payload) {
     }
   }
   throw new Error("Không tìm thấy người dùng");
+}
+
+function handleChangePassword(user, payload) {
+  if (!payload.newPassword) throw new Error("Mật khẩu mới không được để trống");
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('users');
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    const rowId = String(data[i][0]);
+    const rowUsername = String(data[i][1]);
+    const targetId = String(user.id);
+    const targetUsername = String(user.username);
+    
+    if ((rowId && rowId === targetId) || (rowUsername && rowUsername === targetUsername)) {
+      sheet.getRange(i + 1, 3).setValue(payload.newPassword);
+      logAudit(user.id, 'CHANGE_PASSWORD', 'Đổi mật khẩu thành công');
+      return { message: "Đổi mật khẩu thành công" };
+    }
+  }
+  throw new Error("Không tìm thấy người dùng để cập nhật mật khẩu");
 }
 
 function handleDeleteUser(payload) {
