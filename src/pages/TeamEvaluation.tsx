@@ -15,6 +15,8 @@ export const TeamEvaluation: React.FC = () => {
   const [template, setTemplate] = useState<any[]>([]);
   const [scores, setScores] = useState<Record<string, string | number>>({});
   const [saving, setSaving] = useState(false);
+  const [achievementUserInput, setAchievementUserInput] = useState("");
+  const [achievementLeaderInput, setAchievementLeaderInput] = useState("");
 
   useEffect(() => {
     const init = async () => {
@@ -39,17 +41,36 @@ export const TeamEvaluation: React.FC = () => {
 
   const handleSelectUser = async (member: any) => {
     setLoading(true);
+    setAchievementUserInput("");
+    setAchievementLeaderInput("");
     try {
       const isNV = member.role.toLowerCase() === "staff" || member.teamId === "VP" || member.teamId?.toLowerCase() === "văn phòng" || member.teamId?.toLowerCase() === "van phong";
       const type = isNV ? "NV" : "GV";
-      const res = await apiCall("getEvaluationTemplate", { type });
-      setTemplate(res);
+      
+      const [templateRes, achievementRes] = await Promise.all([
+        apiCall("getEvaluationTemplate", { type }),
+        apiCall("getAchievement", {
+          userId: member.id,
+          year: config.year,
+          quarter: config.quarter
+        }).catch(err => {
+          console.warn("Chưa có kê khai thành tích:", err);
+          return null;
+        })
+      ]);
+
+      setTemplate(templateRes);
       setSelectedUser(member);
+
+      if (achievementRes) {
+        setAchievementUserInput(achievementRes.userInput || "");
+        setAchievementLeaderInput(achievementRes.leaderInput || "");
+      }
 
       // Pre-fill scores
       const userEvals = teamData.evaluations[member.id] || {};
       const initialScores: Record<string, string | number> = {};
-      res.forEach((item: any) => {
+      templateRes.forEach((item: any) => {
         if (user?.role.toLowerCase() === 'principal' && userEvals[item.id] && userEvals[item.id].prScore !== "") {
           initialScores[item.id] = Number(userEvals[item.id].prScore);
         } else if (userEvals[item.id] && userEvals[item.id].tlScore !== "") {
@@ -148,10 +169,19 @@ export const TeamEvaluation: React.FC = () => {
         type: isNV ? "NV" : "GV",
       });
 
+      // Save leader's achievement reviews
+      await apiCall("saveLeaderAchievement", {
+        userId: selectedUser.id,
+        year: config.year,
+        quarter: config.quarter,
+        classification: (scores['CLASSIFICATION'] as string) || "",
+        leaderInput: achievementLeaderInput,
+      });
+
       Swal.fire({
         icon: "success",
         title: "Đã lưu",
-        text: user?.role.toLowerCase() === 'principal' ? "Đánh giá của hiệu trưởng đã được lưu." : "Đánh giá của tổ trưởng đã được lưu.",
+        text: user?.role.toLowerCase() === 'principal' ? "Đánh giá và nhận xét thành tích của hiệu trưởng đã được lưu." : "Đánh giá và nhận xét thành tích của tổ trưởng đã được lưu.",
         confirmButtonColor: "#4f46e5",
       });
       
@@ -303,6 +333,35 @@ export const TeamEvaluation: React.FC = () => {
                 </tr>
               </tbody>
             </table>
+          </div>
+        </div>
+
+        {/* Vùng hiển thị thành tích */}
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+          <div>
+            <label className="block text-sm font-semibold text-slate-500 mb-2">
+              Viên chức tự kê khai thành tích nổi bật trong quý (Chỉ xem)
+            </label>
+            <textarea
+              readOnly
+              rows={4}
+              value={achievementUserInput || "(Viên chức không kê khai)"}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 outline-none"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="leader-achievement-input" className="block text-sm font-semibold text-slate-900 mb-2">
+              Tổ trưởng chuyên môn nhận xét/sửa đổi thành tích
+            </label>
+            <textarea
+              id="leader-achievement-input"
+              rows={4}
+              value={achievementLeaderInput}
+              onChange={(e) => setAchievementLeaderInput(e.target.value)}
+              placeholder="Nhập nhận xét hoặc sửa đổi của Tổ trưởng..."
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 text-sm font-medium text-slate-900 transition-shadow"
+            />
           </div>
         </div>
       </div>

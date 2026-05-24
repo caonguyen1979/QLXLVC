@@ -244,6 +244,130 @@ const mockApiCall = async (action: string, payload: any) => {
       return { message: "Đổi mật khẩu thành công" };
     }
 
+    case "saveUserAchievement": {
+      const achievementsStr = localStorage.getItem("mock_achievements") || "[]";
+      const achievements = JSON.parse(achievementsStr);
+      
+      const userId = Number(payload.userId);
+      const year = payload.year;
+      const quarter = Number(payload.quarter);
+      const classification = payload.classification || "";
+      const userInput = payload.userInput || "";
+
+      const existingIdx = achievements.findIndex(
+        (a: any) => Number(a.userId) === userId && String(a.year) === String(year) && Number(a.quarter) === quarter
+      );
+
+      const timestamp = new Date().toISOString();
+
+      if (existingIdx > -1) {
+        achievements[existingIdx] = {
+          ...achievements[existingIdx],
+          classification,
+          userInput,
+          leaderInput: "", // Clear as per instructions
+          timestamp
+        };
+      } else {
+        const nextId = achievements.length > 0 ? Math.max(...achievements.map((a: any) => Number(a.id) || 0)) + 1 : 1;
+        achievements.push({
+          id: nextId,
+          userId,
+          year,
+          quarter,
+          classification,
+          userInput,
+          leaderInput: "",
+          timestamp
+        });
+      }
+
+      localStorage.setItem("mock_achievements", JSON.stringify(achievements));
+      return { message: "Lưu thành tựu thành công", success: true };
+    }
+
+    case "saveLeaderAchievement": {
+      const achievementsStr = localStorage.getItem("mock_achievements") || "[]";
+      const achievements = JSON.parse(achievementsStr);
+      
+      const userId = Number(payload.userId);
+      const year = payload.year;
+      const quarter = Number(payload.quarter);
+      const classification = payload.classification || "";
+      const leaderInput = payload.leaderInput || "";
+
+      const existingIdx = achievements.findIndex(
+        (a: any) => Number(a.userId) === userId && String(a.year) === String(year) && Number(a.quarter) === quarter
+      );
+
+      const timestamp = new Date().toISOString();
+
+      if (existingIdx > -1) {
+        achievements[existingIdx] = {
+          ...achievements[existingIdx],
+          classification,
+          leaderInput,
+          timestamp
+        };
+      } else {
+        const nextId = achievements.length > 0 ? Math.max(...achievements.map((a: any) => Number(a.id) || 0)) + 1 : 1;
+        achievements.push({
+          id: nextId,
+          userId,
+          year,
+          quarter,
+          classification,
+          userInput: "",
+          leaderInput,
+          timestamp
+        });
+      }
+
+      localStorage.setItem("mock_achievements", JSON.stringify(achievements));
+      return { message: "Lưu nhận xét thành công", success: true };
+    }
+
+    case "getAchievement": {
+      const achievementsStr = localStorage.getItem("mock_achievements") || "[]";
+      const achievements = JSON.parse(achievementsStr);
+      const userId = Number(payload.userId);
+      const year = payload.year;
+      const quarter = Number(payload.quarter);
+
+      const found = achievements.find(
+        (a: any) => Number(a.userId) === userId && String(a.year) === String(year) && Number(a.quarter) === quarter
+      );
+      return found || null;
+    }
+
+    case "getAchievementsSummary": {
+      const achievementsStr = localStorage.getItem("mock_achievements") || "[]";
+      const achievements = JSON.parse(achievementsStr);
+      
+      const usersList = [
+        { id: "1", name: "System Admin", role: "Admin", teamId: "SYS" },
+        { id: "2", name: "John Doe", role: "Teacher", teamId: "MATH" },
+        { id: "3", name: "Trần Thị Mai", role: "Teacher", teamId: "PHYS" },
+        { id: "4", name: "Nguyễn Văn Hùng", role: "Staff", teamId: "VP" },
+      ];
+
+      return achievements.map((a: any) => {
+        const u = usersList.find(t => String(t.id) === String(a.userId));
+        return {
+          id: a.id,
+          userId: a.userId,
+          userName: u ? u.name : "Người dùng " + a.userId,
+          userTeam: u ? u.teamId : "Tổ Khác",
+          year: String(a.year || ""),
+          quarter: Number(a.quarter),
+          classification: a.classification || "",
+          userInput: a.userInput || "",
+          leaderInput: a.leaderInput || "",
+          timestamp: a.timestamp
+        };
+      });
+    }
+
     default:
       return { message: "Mock success" };
   }

@@ -11,6 +11,7 @@ export const Evaluation: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [tlEvaluated, setTlEvaluated] = useState(false);
+  const [achievementText, setAchievementText] = useState("");
 
   const [config, setConfig] = useState({ year: "2025-2026", quarter: "1" });
 
@@ -26,13 +27,21 @@ export const Evaluation: React.FC = () => {
         const isNV = user?.role.toLowerCase() === "staff" || user?.teamId === "VP" || user?.teamId?.toLowerCase() === "văn phòng" || user?.teamId?.toLowerCase() === "van phong";
         const type = isNV ? "NV" : "GV";
         
-        const [templateRes, evalRes] = await Promise.all([
+        const [templateRes, evalRes, achievementRes] = await Promise.all([
           apiCall("getEvaluationTemplate", { type }),
           apiCall("getUserEvaluation", {
             userId: user?.id || user?.username,
             year: conf.ACTIVE_YEAR || "2025-2026",
             quarter: conf.ACTIVE_QUARTER || "1",
             type
+          }),
+          apiCall("getAchievement", {
+            userId: user?.id || user?.username,
+            year: conf.ACTIVE_YEAR || "2025-2026",
+            quarter: conf.ACTIVE_QUARTER || "1"
+          }).catch(err => {
+            console.warn("Chưa có bản ghi kê khai thành tích:", err);
+            return null;
           })
         ]);
         
@@ -42,6 +51,9 @@ export const Evaluation: React.FC = () => {
         }
         if (evalRes && evalRes.tlEvaluated) {
           setTlEvaluated(true);
+        }
+        if (achievementRes && achievementRes.userInput) {
+          setAchievementText(achievementRes.userInput);
         }
       } catch (error) {
         console.error("Lỗi khi tải dữ liệu", error);
@@ -125,10 +137,20 @@ export const Evaluation: React.FC = () => {
         type: isNV ? "NV" : "GV",
       });
 
+      if (achievementText.trim() !== "") {
+        await apiCall("saveUserAchievement", {
+          userId: user?.id || user?.username,
+          year: config.year,
+          quarter: config.quarter,
+          classification: (scores['CLASSIFICATION'] as string) || "",
+          userInput: achievementText,
+        });
+      }
+
       Swal.fire({
         icon: "success",
         title: "Đã lưu",
-        text: "Đánh giá của bạn đã được nộp thành công.",
+        text: "Đánh giá và kê khai thành tích của bạn đã được nộp thành công.",
         confirmButtonColor: "#4f46e5",
       });
     } catch (error: any) {
@@ -289,6 +311,24 @@ export const Evaluation: React.FC = () => {
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* Kê khai các thành tích nổi bật */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
+        <div>
+          <label htmlFor="achievement-input" className="block text-sm font-semibold text-slate-900 mb-2">
+            Kê khai các thành tích nổi bật của bản thân trong quý
+          </label>
+          <textarea
+            id="achievement-input"
+            rows={5}
+            value={achievementText}
+            onChange={(e) => setAchievementText(e.target.value)}
+            disabled={tlEvaluated}
+            placeholder="Nhập nội dung kê khai thành tích nổi bật của bản thân tại đây..."
+            className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 text-sm font-medium text-slate-900 transition-shadow disabled:bg-slate-100 disabled:text-slate-500"
+          />
         </div>
       </div>
     </div>

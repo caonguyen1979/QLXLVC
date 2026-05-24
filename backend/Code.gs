@@ -104,6 +104,18 @@ function doPost(e) {
       case 'changePassword':
         result = handleChangePassword(user, payload);
         break;
+      case 'saveUserAchievement':
+        result = handleSaveUserAchievement(user, payload);
+        break;
+      case 'saveLeaderAchievement':
+        result = handleSaveLeaderAchievement(user, payload);
+        break;
+      case 'getAchievement':
+        result = handleGetAchievement(user, payload);
+        break;
+      case 'getAchievementsSummary':
+        result = handleGetAchievementsSummary(user, payload);
+        break;
       default:
         throw new Error("Unknown action: " + action);
     }
@@ -929,5 +941,177 @@ function handleDeleteThiDuaHistory(user, payload) {
   } else {
     throw new Error("Không tìm thấy dòng xóa");
   }
+}
+
+function handleSaveUserAchievement(user, payload) {
+  const targetUserId = Number(payload.userId || user.id);
+  const config = handleGetConfig();
+  const year = Number(config.ACTIVE_YEAR) || Number(payload.year);
+  const quarter = Number(config.ACTIVE_QUARTER) || Number(payload.quarter);
+  const classification = payload.classification || '';
+  const userInput = payload.userInput || '';
+
+  const sheet = getOrCreateSheet('achievements', ['id', 'userId', 'year', 'quarter', 'classification', 'user_input', 'leader_input', 'timestamp']);
+  const data = sheet.getDataRange().getValues();
+
+  let existingRowIdx = -1;
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (Number(row[1]) === targetUserId && Number(row[2]) === year && Number(row[3]) === quarter) {
+      existingRowIdx = i + 1;
+      break;
+    }
+  }
+
+  const timestamp = new Date();
+
+  if (existingRowIdx > -1) {
+    sheet.getRange(existingRowIdx, 5).setValue(classification); // Column E
+    sheet.getRange(existingRowIdx, 6).setValue(userInput);      // Column F
+    sheet.getRange(existingRowIdx, 7).setValue('');             // Column G (clear as requested)
+    sheet.getRange(existingRowIdx, 8).setValue(timestamp);      // Column H
+  } else {
+    let nextId = 1;
+    if (data.length > 1) {
+      let maxId = 0;
+      for (let i = 1; i < data.length; i++) {
+        const val = Number(data[i][0]);
+        if (!isNaN(val) && val > maxId) maxId = val;
+      }
+      nextId = maxId + 1;
+    }
+
+    const rowValues = [
+      nextId,
+      targetUserId,
+      year,
+      quarter,
+      classification,
+      userInput,
+      '',
+      timestamp
+    ];
+    sheet.appendRow(rowValues);
+  }
+
+  logAudit(targetUserId, 'SAVE_USER_ACHIEVEMENT', `Tự kê khai thành tích quý ${quarter} năm ${year}`);
+  return { message: "Lưu thành công", success: true };
+}
+
+function handleSaveLeaderAchievement(user, payload) {
+  const targetUserId = Number(payload.userId);
+  const config = handleGetConfig();
+  const year = Number(config.ACTIVE_YEAR) || Number(payload.year);
+  const quarter = Number(config.ACTIVE_QUARTER) || Number(payload.quarter);
+  const classification = payload.classification || '';
+  const leaderInput = payload.leaderInput || '';
+
+  const sheet = getOrCreateSheet('achievements', ['id', 'userId', 'year', 'quarter', 'classification', 'user_input', 'leader_input', 'timestamp']);
+  const data = sheet.getDataRange().getValues();
+
+  let existingRowIdx = -1;
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (Number(row[1]) === targetUserId && Number(row[2]) === year && Number(row[3]) === quarter) {
+      existingRowIdx = i + 1;
+      break;
+    }
+  }
+
+  const timestamp = new Date();
+
+  if (existingRowIdx > -1) {
+    sheet.getRange(existingRowIdx, 5).setValue(classification); // Column E
+    sheet.getRange(existingRowIdx, 7).setValue(leaderInput);     // Column G
+    sheet.getRange(existingRowIdx, 8).setValue(timestamp);      // Column H
+  } else {
+    let nextId = 1;
+    if (data.length > 1) {
+      let maxId = 0;
+      for (let i = 1; i < data.length; i++) {
+        const val = Number(data[i][0]);
+        if (!isNaN(val) && val > maxId) maxId = val;
+      }
+      nextId = maxId + 1;
+    }
+
+    const rowValues = [
+      nextId,
+      targetUserId,
+      year,
+      quarter,
+      classification,
+      '',
+      leaderInput,
+      timestamp
+    ];
+    sheet.appendRow(rowValues);
+  }
+
+  logAudit(user.id, 'SAVE_LEADER_ACHIEVEMENT', `Tổ trưởng nhận xét thành tích cho userId: ${targetUserId} quý ${quarter} năm ${year}`);
+  return { message: "Lưu thành công", success: true };
+}
+
+function handleGetAchievement(user, payload) {
+  const targetUserId = Number(payload.userId || user.id);
+  const year = Number(payload.year);
+  const quarter = Number(payload.quarter);
+
+  const sheet = getOrCreateSheet('achievements', ['id', 'userId', 'year', 'quarter', 'classification', 'user_input', 'leader_input', 'timestamp']);
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (Number(row[1]) === targetUserId && Number(row[2]) === year && Number(row[3]) === quarter) {
+      return {
+        id: row[0],
+        userId: row[1],
+        year: Number(row[2]),
+        quarter: Number(row[3]),
+        classification: row[4],
+        userInput: row[5],
+        leaderInput: row[6],
+        timestamp: row[7]
+      };
+    }
+  }
+  return null;
+}
+
+function handleGetAchievementsSummary(user, payload) {
+  const sheet = getOrCreateSheet('achievements', ['id', 'userId', 'year', 'quarter', 'classification', 'user_input', 'leader_input', 'timestamp']);
+  const data = sheet.getDataRange().getValues();
+
+  const usersSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('users');
+  const usersData = usersSheet ? usersSheet.getDataRange().getValues() : [];
+  const userMap = {};
+  for (let i = 1; i < usersData.length; i++) {
+    const uid = Number(usersData[i][0] || usersData[i][1]);
+    userMap[uid] = {
+      name: usersData[i][4],
+      teamId: usersData[i][5]
+    };
+  }
+
+  const list = [];
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const uid = Number(row[1]);
+    const uInfo = userMap[uid] || { name: 'Người dùng ' + uid, teamId: 'Khác' };
+
+    list.push({
+      id: row[0],
+      userId: uid,
+      userName: uInfo.name,
+      userTeam: uInfo.teamId,
+      year: Number(row[2]),
+      quarter: Number(row[3]),
+      classification: row[4],
+      userInput: row[5],
+      leaderInput: row[6],
+      timestamp: row[7]
+    });
+  }
+  return list;
 }
 

@@ -1,5 +1,6 @@
 {
   "name": "QLXLVC",
   "description": "A production-ready evaluation management web application with role-based access control.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -9,6 +9,7 @@ import { Emulation } from "./pages/Emulation";
 import { Admin } from "./pages/Admin";
 import { Unauthorized } from "./pages/Unauthorized";
 import { TeamEvaluation } from "./pages/TeamEvaluation";
+import { AchievementsSummary } from "./pages/AchievementsSummary";
 import { useAuthStore } from "./store/authStore";
 
 export default function App() {
@@ -38,6 +39,7 @@ export default function App() {
           >
             <Route path="/evaluation" element={<Evaluation />} />
             <Route path="/emulation" element={<Emulation />} />
+            <Route path="/achievements" element={<AchievementsSummary />} />
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={["Admin"]} />}>

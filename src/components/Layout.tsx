@@ -88,6 +88,12 @@ export const Layout: React.FC = () => {
           icon: Users,
           roles: ["TeamLeader", "Principal"],
         },
+        {
+          name: "Tổng hợp thành tích",
+          path: "/achievements",
+          icon: Award,
+          roles: ["Teacher", "Staff", "TeamLeader", "Principal", "Admin"],
+        },
       ],
     },
     {
