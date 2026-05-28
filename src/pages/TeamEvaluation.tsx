@@ -319,11 +319,15 @@ export const TeamEvaluation: React.FC = () => {
                   <td className="px-6 py-3 align-middle">
                     <div className="flex justify-center">
                       <select
+                        id="team-eval-classification-select"
                         value={(scores['CLASSIFICATION'] as string) || ""}
                         onChange={(e) => setScores((prev) => ({ ...prev, CLASSIFICATION: e.target.value }))}
                         className="w-full text-center px-2 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 text-sm font-medium text-slate-900 transition-shadow"
                       >
                         <option value="">-- Chọn xếp loại --</option>
+                        {user?.role.toLowerCase() === 'principal' && (
+                          <option value="HTXS NV">Hoàn thành xuất sắc nhiệm vụ (HTXS NV)</option>
+                        )}
                         <option value="HTT NV">Hoàn thành tốt nhiệm vụ (HTT NV)</option>
                         <option value="HT NV">Hoàn thành nhiệm vụ (HT NV)</option>
                         <option value="KHT NV">Không hoàn thành nhiệm vụ (KHT NV)</option>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { apiCall } from "../services/api";
-import { Search, Filter, Award, CheckSquare, MessageSquare } from "lucide-react";
+import { Search, Filter, Award, CheckSquare, MessageSquare, Sparkles, ShieldCheck, ShieldAlert } from "lucide-react";
 import { translateRole } from "../utils/translate";
 
 interface AchievementItem {
@@ -40,6 +40,50 @@ export const AchievementsSummary: React.FC = () => {
     };
     fetchSummary();
   }, []);
+
+  const renderClassificationTag = (classification: string) => {
+    if (!classification) return <span className="text-slate-400 text-xs">-</span>;
+    
+    const val = classification.trim();
+    if (val === 'HTXS NV') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
+          <Sparkles size={12} className="text-amber-500" />
+          {val}
+        </span>
+      );
+    }
+    if (val === 'HTT NV') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
+          <Award size={12} className="text-emerald-500" />
+          {val}
+        </span>
+      );
+    }
+    if (val === 'HT NV') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100">
+          <ShieldCheck size={12} className="text-blue-500" />
+          {val}
+        </span>
+      );
+    }
+    if (val === 'KHT NV') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-100">
+          <ShieldAlert size={12} className="text-rose-500" />
+          {val}
+        </span>
+      );
+    }
+    
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-100">
+        {val}
+      </span>
+    );
+  };
 
   // Get unique teams for dropdown filter
   const teamsList = Array.from(new Set(achievements.map((item) => item.userTeam))).filter(Boolean);
@@ -159,14 +203,7 @@ export const AchievementsSummary: React.FC = () => {
                       Quý {item.quarter} / {item.year}
                     </td>
                     <td className="px-6 py-4 text-center">
-                      {item.classification ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
-                          <Award size={12} />
-                          {item.classification}
-                        </span>
-                      ) : (
-                        <span className="text-slate-400 text-xs">-</span>
-                      )}
+                      {renderClassificationTag(item.classification)}
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-700">
                       {item.userInput ? (

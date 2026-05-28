@@ -1108,11 +1108,50 @@ function handleGetAchievementsSummary(user, payload) {
     };
   }
 
+  // Live lookup mapped evaluations to ensure precise final classification logic (Principal -> TeamLeader -> Self)
+  const officialClassifications = {};
+  
+  const extractClassificationsFromSheet = (sheetName) => {
+    const dbSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(sheetName);
+    if (!dbSheet) return;
+    const dbData = dbSheet.getDataRange().getValues();
+    for (let i = 1; i < dbData.length; i++) {
+      const row = dbData[i];
+      const criteriaId = String(row[4] || '').trim();
+      if (criteriaId === 'CLASSIFICATION') {
+        const uid = Number(row[1]);
+        const rYear = String(row[2] || '').trim();
+        const rQuarter = String(row[3] || '').trim();
+        const key = `${uid}_${rYear}_${rQuarter}`;
+        
+        const selfVal = String(row[5] === undefined || row[5] === null ? '' : row[5]).trim();
+        const tlVal = String(row[6] === undefined || row[6] === null ? '' : row[6]).trim();
+        const prVal = String(row[7] === undefined || row[7] === null ? '' : row[7]).trim();
+        
+        // Priority: Principal evaluation (prVal) -> TeamLeader evaluation (tlVal) -> Self evaluation (selfVal)
+        const computedVal = prVal !== "" ? prVal : (tlVal !== "" ? tlVal : selfVal);
+        if (computedVal) {
+          officialClassifications[key] = computedVal;
+        }
+      }
+    }
+  };
+
+  extractClassificationsFromSheet('DataGV');
+  extractClassificationsFromSheet('DataNV');
+
   const list = [];
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
     const uid = Number(row[1]);
     const uInfo = userMap[uid] || { name: 'Người dùng ' + uid, teamId: 'Khác' };
+    
+    const year = String(row[2]).trim();
+    const quarter = String(row[3]).trim();
+    const key = `${uid}_${year}_${quarter}`;
+    
+    // Fallback order: live evaluation sheet match -> legacy achievements column E
+    const finalClassification = officialClassifications[key] || String(row[4] || '').trim() || '-';
 
     list.push({
       id: row[0],
@@ -1121,7 +1160,7 @@ function handleGetAchievementsSummary(user, payload) {
       userTeam: uInfo.teamId,
       year: Number(row[2]),
       quarter: Number(row[3]),
-      classification: row[4],
+      classification: finalClassification,
       userInput: row[5],
       leaderInput: row[6],
       timestamp: row[7]
