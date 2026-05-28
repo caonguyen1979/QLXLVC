@@ -4,7 +4,7 @@ import { apiCall } from "../services/api";
 import Swal from "sweetalert2";
 import { Save, Edit } from "lucide-react";
 
-import { translateRole } from "../utils/translate";
+import { translateRole, checkIsNV } from "../utils/translate";
 
 export const TeamEvaluation: React.FC = () => {
   const { user } = useAuthStore();
@@ -44,7 +44,7 @@ export const TeamEvaluation: React.FC = () => {
     setAchievementUserInput("");
     setAchievementLeaderInput("");
     try {
-      const isNV = member.role.toLowerCase() === "staff" || member.teamId === "VP" || member.teamId?.toLowerCase() === "văn phòng" || member.teamId?.toLowerCase() === "van phong";
+      const isNV = checkIsNV(member.role, member.teamId);
       const type = isNV ? "NV" : "GV";
       
       const [templateRes, achievementRes] = await Promise.all([
@@ -160,7 +160,7 @@ export const TeamEvaluation: React.FC = () => {
         });
       }
 
-      const isNV = selectedUser.role.toLowerCase() === "staff" || selectedUser.teamId === "VP" || selectedUser.teamId?.toLowerCase() === "văn phòng" || selectedUser.teamId?.toLowerCase() === "van phong";
+      const isNV = checkIsNV(selectedUser.role, selectedUser.teamId);
       await apiCall("submitEvaluation", {
         userId: selectedUser.id,
         year: config.year,

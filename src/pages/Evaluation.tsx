@@ -3,6 +3,7 @@ import { useAuthStore } from "../store/authStore";
 import { apiCall } from "../services/api";
 import Swal from "sweetalert2";
 import { Save } from "lucide-react";
+import { checkIsNV } from "../utils/translate";
 
 export const Evaluation: React.FC = () => {
   const { user } = useAuthStore();
@@ -24,7 +25,7 @@ export const Evaluation: React.FC = () => {
           quarter: conf.ACTIVE_QUARTER || "1",
         });
 
-        const isNV = user?.role.toLowerCase() === "staff" || user?.teamId === "VP" || user?.teamId?.toLowerCase() === "văn phòng" || user?.teamId?.toLowerCase() === "van phong";
+        const isNV = checkIsNV(user?.role, user?.teamId);
         const type = isNV ? "NV" : "GV";
         
         const [templateRes, evalRes, achievementRes] = await Promise.all([
@@ -128,7 +129,7 @@ export const Evaluation: React.FC = () => {
         });
       }
 
-      const isNV = user?.role.toLowerCase() === "staff" || user?.teamId === "VP" || user?.teamId?.toLowerCase() === "văn phòng" || user?.teamId?.toLowerCase() === "van phong";
+      const isNV = checkIsNV(user?.role, user?.teamId);
       await apiCall("submitEvaluation", {
         userId: user?.id || user?.username,
         year: config.year,

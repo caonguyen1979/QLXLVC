@@ -301,15 +301,19 @@ function handleSubmitEvaluation(user, payload) {
 
   const data = sheet.getDataRange().getValues();
   
+  const StringifyTrim = function(val) {
+    return val === undefined || val === null ? "" : String(val).trim();
+  };
+
   const existingRows = {};
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
-    const key = `${row[1]}_${row[2]}_${row[3]}_${row[4]}`;
+    const key = `${StringifyTrim(row[1])}_${StringifyTrim(row[2])}_${StringifyTrim(row[3])}_${StringifyTrim(row[4])}`;
     existingRows[key] = i + 1;
   }
 
   scores.forEach(scoreItem => {
-    const key = `${userId}_${year}_${quarter}_${scoreItem.criteriaId}`;
+    const key = `${StringifyTrim(userId)}_${StringifyTrim(year)}_${StringifyTrim(quarter)}_${StringifyTrim(scoreItem.criteriaId)}`;
     const rowIndex = existingRows[key];
     
     if (rowIndex) {
@@ -486,8 +490,16 @@ function handleGetUserEvaluation(user, payload) {
   
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
-    if (row[1] == userId && row[2] == year && row[3] == quarter) {
-      scores[row[4]] = row[5]; // selfScore
+    const rUid = row[1] === undefined || row[1] === null ? "" : String(row[1]).trim();
+    const rYear = row[2] === undefined || row[2] === null ? "" : String(row[2]).trim();
+    const rQuarter = row[3] === undefined || row[3] === null ? "" : String(row[3]).trim();
+    const targetUid = userId === undefined || userId === null ? "" : String(userId).trim();
+    const targetYear = year === undefined || year === null ? "" : String(year).trim();
+    const targetQuarter = quarter === undefined || quarter === null ? "" : String(quarter).trim();
+    
+    if (rUid === targetUid && rYear === targetYear && rQuarter === targetQuarter) {
+      const criteriaId = row[4] === undefined || row[4] === null ? "" : String(row[4]).trim();
+      scores[criteriaId] = row[5]; // selfScore
       if (row[6] !== '') {
         tlEvaluated = true;
       }
@@ -513,14 +525,15 @@ function handleGetTeamData(user, payload) {
     
     if (user.role.toLowerCase() === 'principal' || usersData[i][5] === user.teamId) {
       const uid = usersData[i][0] || usersData[i][1];
+      const strUid = uid === undefined || uid === null ? "" : String(uid).trim();
       teamMembers.push({
-        id: uid,
+        id: strUid,
         username: usersData[i][1],
         role: role,
         name: usersData[i][4],
         teamId: usersData[i][5]
       });
-      memberIds.add(uid);
+      memberIds.add(strUid);
     }
   }
   
@@ -533,12 +546,14 @@ function handleGetTeamData(user, payload) {
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
       const uid = row[1];
-      const rYear = row[2];
-      const rQuarter = row[3];
+      const strUid = uid === undefined || uid === null ? "" : String(uid).trim();
+      const rYear = row[2] === undefined || row[2] === null ? "" : String(row[2]).trim();
+      const rQuarter = row[3] === undefined || row[3] === null ? "" : String(row[3]).trim();
       
-      if (memberIds.has(uid) && rYear == year && rQuarter == quarter) {
-        if (!evaluations[uid]) evaluations[uid] = {};
-        evaluations[uid][row[4]] = {
+      if (memberIds.has(strUid) && rYear === String(year).trim() && rQuarter === String(quarter).trim()) {
+        if (!evaluations[strUid]) evaluations[strUid] = {};
+        const criteriaId = row[4] === undefined || row[4] === null ? "" : String(row[4]).trim();
+        evaluations[strUid][criteriaId] = {
           selfScore: row[5],
           tlScore: row[6],
           prScore: row[7],
