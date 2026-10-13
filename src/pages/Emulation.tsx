@@ -1307,7 +1307,7 @@ export const Emulation: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="p-3 border border-slate-100 rounded-xl bg-slate-50/45 space-y-3">
-                  <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wider">Cấp cơ sở (Trường/Quận/Huyện)</h3>
+                  <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wider">Cấp cơ sở (Sở GDĐT công nhận)</h3>
                   
                   <label className="flex items-start gap-2.5 cursor-pointer">
                     <input
